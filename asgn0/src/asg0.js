@@ -23,7 +23,7 @@ function main() {
 
     // Step 2
     ctx.fillStyle = 'black'; // set canvas to black
-    //ctx.fillRect(0, 0, 400, 400);
+    ctx.fillRect(0, 0, 400, 400);
 
     var v1 = new Vector3([2.25, 2.25, 0]); // set the z coordinate to zero
     drawVector(v1, "red"); // draw vector v1 and a string color in red
