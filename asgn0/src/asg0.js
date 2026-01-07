@@ -29,7 +29,7 @@ function main() {
     drawVector(v1, "red"); // draw vector v1 and a string color in red
 }
 
-// 
+// a function drawVector(v, color) that takes a Vector3 v and a string color
 function drawVector(v, color){
     // center of 400x400 canvas
     var center_x = 400/2;
