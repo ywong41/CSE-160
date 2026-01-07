@@ -44,6 +44,6 @@ function drawVector(v, color){
     // draw vector
     ctx.beginPath();
     ctx.moveTo(center_x, center_y);
-    ctx.lineTo(center_x + v.elements[0] * scale, center_y - v.elements[1] * scale); // canvas y grows downward
+    ctx.lineTo(center_x + v.elements[0] * scale, center_y - v.elements[1] * scale); // scale vector by 20 (canvas y grows downward)
     ctx.stroke();
 }
