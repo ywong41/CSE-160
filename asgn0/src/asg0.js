@@ -62,4 +62,12 @@ function handleDrawEvent(){
     // create v1
     var v1 = new Vector3([v1x, v1y, 0]);
     drawVector(v1, "red"); // draw vector v1 and a string color in red
+
+    // read text boxes values
+    var v2x = parseFloat(document.getElementById('v2_xCoor').value);
+    var v2y = parseFloat(document.getElementById('v2_yCoor').value);
+
+    //create v2
+    var v2 = new Vector3([v2x, v2y, 0]);
+    drawVector(v2, "blue");
 }

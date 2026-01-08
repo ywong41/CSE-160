@@ -21,11 +21,18 @@
         <!--Step 3: add an interface for user to specify and draw the v1 vector-->
         <!--specify the x coordinate and y coordinate-->
         <br><br>
-        <label for="v1">v1: x</label>
+        <label for="v1_xCoor">v1: x</label>
         <input type="text" id="v1_xCoor" name="v1_xCoor" required size="9">
         <label for="v1_yCoor">y</label>
         <input type="text" id="v1_yCoor" name="v1_yCoor" required size="9">
+
+        <!--Step 4: add an interface for user to specify and draw a second vector v2-->
         <br>
+        <label for="v2_xCoor">v2: x</label>
+        <input type="text" id="v2_xCoor" name="v2_xCoor" required size="9">
+        <label for="v2_yCoor">y</label>
+        <input type="text" id="v2_yCoor" name="v2_yCoor" required size="9">
+
         <!--Draw button-->
         <input type="button" value="Draw" onclick="handleDrawEvent()">
         
