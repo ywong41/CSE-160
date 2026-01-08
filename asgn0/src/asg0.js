@@ -5,7 +5,7 @@ var ctx
 
 function main() {  
     // Retrieve <canvas> element
-    var canvas = document.getElementById('example');  
+    var canvas = document.getElementById('canvas1');  
     if (!canvas) { 
         console.log('Failed to retrieve the <canvas> element');
         return false; 
@@ -22,8 +22,8 @@ function main() {
     */
 
     // Step 2
-    ctx.fillStyle = 'black'; // set fill color to black
-    ctx.fillRect(0, 0, 400, 400); // draws a filled rectangles
+    ctx.fillStyle = 'rgba(0, 0, 0, 1.0)'; // set color to black
+    ctx.fillRect(0, 0, canvas.width, canvas.height); // fill rectangle with black
 
     var v1 = new Vector3([2.25, 2.25, 0]); // set the z coordinate to zero
     drawVector(v1, "red"); // draw vector v1 and a string color in red
