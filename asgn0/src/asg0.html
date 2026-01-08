@@ -15,17 +15,20 @@
         <canvas id="canvas1" width="400" height="400">
         Please use a browser that supports "canvas"
         </canvas>
+        <script src="../lib/cuon-matrix-cse160.js"></script>
+        <script src="asg0.js"></script>
 
         <!--Step 3: add an interface for user to specify and draw the v1 vector-->
         <!--specify the x coordinate and y coordinate-->
-        <br>
-        v1: x<input type="number" id="v1_xCoor" step="any">
-        y<input type="number" id="v1_yCoor" step="any">
+        <br><br>
+        <label for="v1">v1: x</label>
+        <input type="text" id="v1_xCoor" name="v1_xCoor">
+        <label for="v1_yCoor">y</label>
+        <input type="text" id="v1_yCoor" name="v1_yCoor">
         <br>
         <!--Draw button-->
         <input type="button" value="Draw" onclick="handleDrawEvent()">
         
-        <script src="../lib/cuon-matrix-cse160.js"></script>
-        <script src="asg0.js"></script>
+    
     </body>
 </html>
