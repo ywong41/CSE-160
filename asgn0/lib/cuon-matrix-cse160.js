@@ -10,9 +10,9 @@ class Vector3 {
     constructor(opt_src) {
         var v = new Float32Array(3);
         if (opt_src && typeof opt_src === 'object') {
-          v[0] = opt_src[0];
-          v[1] = opt_src[1];
-          v[2] = opt_src[2];
+            v[0] = opt_src[0];
+            v[1] = opt_src[1];
+            v[2] = opt_src[2];
         }
         this.elements = v;
     }
@@ -29,11 +29,11 @@ class Vector3 {
         d = this.elements;
 
         if (s === d) {
-          return;
+            return;
         }
 
         for (i = 0; i < 3; ++i) {
-          d[i] = s[i];
+            d[i] = s[i];
         }
 
         return this;
@@ -45,6 +45,9 @@ class Vector3 {
       */
     add(other) {
         // Insert your code here.
+        this.elements[0] = this.elements[0] + other.elements[0];
+        this.elements[1] = this.elements[1] + other.elements[1];
+        this.elements[2] = this.elements[2] + other.elements[2];
         // This function should change this vector (this.elements) and not create a new vector.
 
         // Don't delete the return statement.
@@ -57,8 +60,11 @@ class Vector3 {
       */
     sub(other) {
         // Insert your code here.
+        this.elements[0] = this.elements[0] - other.elements[0];
+        this.elements[1] = this.elements[1] - other.elements[1];
+        this.elements[2] = this.elements[2] - other.elements[2];
         // This function should change this vector (this.elements) and not create a new vector.
-
+        
         // Don't delete the return statement.
         return this;
     };
@@ -69,6 +75,9 @@ class Vector3 {
       */
     div(scalar) {
         // Insert your code here.
+        this.elements[0] = this.elements[0] / scalar;
+        this.elements[1] = this.elements[1] / scalar;
+        this.elements[2] = this.elements[2] / scalar;
         // This function should change this vector (this.elements) and not create a new vector.
 
         // Don't delete the return statement.
@@ -81,8 +90,11 @@ class Vector3 {
       */
     mul(scalar) {
         // Insert your code here.
+        this.elements[0] = this.elements[0] * scalar;
+        this.elements[1] = this.elements[1] * scalar;
+        this.elements[2] = this.elements[2] * scalar;
         // This function should change this vector (this.elements) and not create a new vector.
-
+        
         // Don't delete the return statement.
         return this;
     };
