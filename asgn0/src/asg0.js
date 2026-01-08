@@ -1,11 +1,11 @@
 // DrawTriangle.js (c) 2012 matsuda
 
-// make ctx Global var
+// make ctx and canvas Global var
 var ctx
-
+var canvas
 function main() {  
     // Retrieve <canvas> element
-    var canvas = document.getElementById('canvas1');  
+    canvas = document.getElementById('canvas1');  
     if (!canvas) { 
         console.log('Failed to retrieve the <canvas> element');
         return false; 
@@ -50,10 +50,10 @@ function drawVector(v, color){
 // a function named handleDrawEvent() that is called whenever a user clicks on the draw button
 function handleDrawEvent(){
     // clear canvas
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = 'rgba(0, 0, 0, 1.0)'; // set color to black
-    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); // fill rectangle with black
+    ctx.fillRect(0, 0, canvas.width, canvas.height); // fill rectangle with black
     
     // read text boxes values
     var v1x = parseFloat(document.getElementById('v1_xCoor').value);
