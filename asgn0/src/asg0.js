@@ -32,8 +32,8 @@ function main() {
 // a function named drawVector(v, color) that takes a Vector3 v and a string color
 function drawVector(v, color){
     // center of 400x400 canvas
-    var center_x = 400/2;
-    var center_y = 400/2;
+    var center_x = canvas.width/2;
+    var center_y = canvas.height/2;
 
     // scale
     var scale = 20;
