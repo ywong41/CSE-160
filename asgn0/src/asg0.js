@@ -53,7 +53,7 @@ function handleDrawEvent(){
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
     ctx.fillStyle = 'rgba(0, 0, 0, 1.0)'; // set color to black
-    ctx.fillRect(0, 0, canvas.width, canvas.height); // fill rectangle with black
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height); // fill rectangle with black
     
     // read text boxes values
     var v1x = parseFloat(document.getElementById('v1_xCoor').value);
