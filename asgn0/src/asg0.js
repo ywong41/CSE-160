@@ -130,8 +130,8 @@ function handleDrawOperationEvent(){
         drawVector(v3, "green"); 
         drawVector(v4, "green"); 
     }else if(op === "magnitude"){
-        console.log("Magnitude of v1: " + v1.magnitude());
-        console.log("Magnitude of v2: " + v2.magnitude());
+        console.log("Magnitude of v1: " + v1.magnitude().toFixed(2));
+        console.log("Magnitude of v2: " + v2.magnitude().toFixed(2));
     }else if(op === "normalize"){
         v1.normalize();
         v2.normalize();
@@ -139,10 +139,10 @@ function handleDrawOperationEvent(){
         drawVector(v2, "green"); 
     }else if(op === "angle"){
         var angle = angleBetween(v1, v2);
-        console.log("Angle: " + angle);
+        console.log("Angle: " + angle.toFixed(2));
     }else if(op === "area"){
         var area = areaTriangle(v1, v2);
-        console.log("Area of the triangle: " + area);
+        console.log("Area of the triangle: " + area.toFixed(2));
     }
 }
 
