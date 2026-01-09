@@ -37,7 +37,7 @@
         <br>
         <input type="button" value="Draw" onclick="handleDrawEvent()">
 
-        <!--add an operation selector-->
+        <!--Step 5: add an operation selector-->
         <br>
         <label for="operation-select">Operation :</label>
         <select name="Op" id="operation-select">
@@ -46,5 +46,12 @@
             <option value="mul">Multiply</option>
             <option value="div">Divide</option>
         </select>
+        <label for="scalar">Scalar:</label>
+        <!--number input box for scalar-->
+        <input type="number" id="v1_xCoor" name="v1_xCoor" required size="9">
+        <!--Draw button-->
+        <br>
+        <input type="button" value="Draw" onclick="handleDrawOperationEvent()">
+
     </body>
 </html>
