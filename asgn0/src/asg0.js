@@ -136,5 +136,14 @@ function handleDrawOperationEvent(){
         v2.normalize();
         drawVector(v1, "green"); 
         drawVector(v2, "green"); 
+    }else if(op === "angle"){
+        var angle = angleBetween(v1, v2);
+        console.log("Angle: " + angle);
     }
+}
+
+function angleBetween(v1, v2){
+    var temp = Vector3.dot(v1, v2) / (v1.magnitude() * v2.magnitude());
+    var angle_between = (Math.acos(temp) * 180) / Math.PI;
+    return angle_between;
 }
