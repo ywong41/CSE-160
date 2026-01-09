@@ -47,6 +47,7 @@ function drawVector(v, color){
     ctx.lineTo(center_x + v.elements[0] * scale, center_y - v.elements[1] * scale); // scale vector by 20 (canvas y grows downward)
     ctx.stroke();
 }
+
 // a function named handleDrawEvent() that is called whenever a user clicks on the draw button
 function handleDrawEvent(){
     // clear canvas
@@ -62,15 +63,70 @@ function handleDrawEvent(){
     // create v1
     var v1 = new Vector3([v1x, v1y, 0]);
     drawVector(v1, "red"); // draw vector v1 and a string color in red
-
     console.log("v1: x: ", v1x, " y: ", v1y);
 
     // read text boxes values
     var v2x = parseFloat(document.getElementById('v2_xCoor').value);
     var v2y = parseFloat(document.getElementById('v2_yCoor').value);
 
-    //create v2
+    // create v2
     var v2 = new Vector3([v2x, v2y, 0]);
     drawVector(v2, "blue");
     console.log("v2: x: ", v2x, "y: ", v2y);
+}
+
+// a function named handleDrawOperationEvent() that is called whenever user clicks on second draw button.
+function handleDrawOperationEvent(){
+    // clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'rgba(0, 0, 0, 1.0)'; // set color to black
+    ctx.fillRect(0, 0, canvas.width, canvas.height); // fill rectangle with black
+
+    // read text boxes values
+    var v1x = parseFloat(document.getElementById('v1_xCoor').value);
+    var v1y = parseFloat(document.getElementById('v1_yCoor').value);
+
+    // create v1
+    var v1 = new Vector3([v1x, v1y, 0]);
+    drawVector(v1, "red"); // draw vector v1 and a string color in red
+    console.log("v1: x: ", v1x, " y: ", v1y);
+
+    // read text boxes values
+    var v2x = parseFloat(document.getElementById('v2_xCoor').value);
+    var v2y = parseFloat(document.getElementById('v2_yCoor').value);
+
+    // create v2
+    var v2 = new Vector3([v2x, v2y, 0]);
+    drawVector(v2, "blue");
+    console.log("v2: x: ", v2x, "y: ", v2y);
+
+    // read the value of selector and scalar, and call Vector3 functions
+    var op = document.getElementById('operation-select').value;
+    var scalar = parseFloat(document.getElementById('scalar').value);
+
+    if(op === "add"){;
+        var v3 = new Vector3([v1.elements[0], v1.elements[1], v1.elements[2]])
+        v3.add(v2); // v3 = v1 + v2
+        drawVector(v3, "green"); // draw vector v3 and a string color in green
+    }else if(op === "sub"){
+        var v3 = new Vector3([v1.elements[0], v1.elements[1], v1.elements[2]]);
+        v3.sub(v2); // v3 = v1 - v2
+        drawVector(v3, "green"); 
+    }else if(op === "mul"){
+        var v3 = new Vector3([v1.elements[0], v1.elements[1], v1.elements[2]]);
+        var v4 = new Vector3([v2.elements[0], v2.elements[1], v2.elements[2]]);
+        // v3 = v1 * s and v4 = v2 * s.
+        v3.mul(scalar);
+        v4.mul(scalar);
+        drawVector(v3, "green"); 
+        drawVector(v4, "green"); 
+    }else if(op === "div"){
+        var v3 = new Vector3([v1.elements[0], v1.elements[1], v1.elements[2]]);
+        var v4 = new Vector3([v2.elements[0], v2.elements[1], v2.elements[2]]);
+        // v3 = v1 / s and v4 = v2 / s.
+        v3.div(scalar);
+        v4.div(scalar);
+        drawVector(v3, "green"); 
+        drawVector(v4, "green"); 
+    }
 }
