@@ -3,6 +3,7 @@
 // make ctx and canvas Global var
 var ctx
 var canvas
+
 function main() {  
     // Retrieve <canvas> element
     canvas = document.getElementById('canvas1');  
