@@ -145,6 +145,7 @@ function handleDrawOperationEvent(){
     }
 }
 
+// a function that calculate the angle between the vectors v1 and v2
 function angleBetween(v1, v2){
     var temp = Vector3.dot(v1, v2) / (v1.magnitude() * v2.magnitude());
     var angle_between = (Math.acos(temp) * 180) / Math.PI;
