@@ -63,7 +63,7 @@ function handleDrawEvent(){
     // create v1
     var v1 = new Vector3([v1x, v1y, 0]);
     drawVector(v1, "red"); // draw vector v1 and a string color in red
-    console.log("v1: x: ", v1x, " y: ", v1y);
+    //console.log("v1: x: ", v1x, " y: ", v1y);
 
     // read text boxes values
     var v2x = parseFloat(document.getElementById('v2_xCoor').value);
@@ -72,7 +72,7 @@ function handleDrawEvent(){
     // create v2
     var v2 = new Vector3([v2x, v2y, 0]);
     drawVector(v2, "blue");
-    console.log("v2: x: ", v2x, "y: ", v2y);
+    //console.log("v2: x: ", v2x, "y: ", v2y);
 }
 
 // a function named handleDrawOperationEvent() that is called whenever user clicks on second draw button.
@@ -89,7 +89,7 @@ function handleDrawOperationEvent(){
     // create v1
     var v1 = new Vector3([v1x, v1y, 0]);
     drawVector(v1, "red"); // draw vector v1 and a string color in red
-    console.log("v1: x: ", v1x, " y: ", v1y);
+    // console.log("v1: x: ", v1x, " y: ", v1y);
 
     // read text boxes values
     var v2x = parseFloat(document.getElementById('v2_xCoor').value);
@@ -98,7 +98,7 @@ function handleDrawOperationEvent(){
     // create v2
     var v2 = new Vector3([v2x, v2y, 0]);
     drawVector(v2, "blue");
-    console.log("v2: x: ", v2x, "y: ", v2y);
+    // console.log("v2: x: ", v2x, "y: ", v2y);
 
     // read the value of selector and scalar, and call Vector3 functions
     var op = document.getElementById('operation-select').value;
@@ -128,5 +128,13 @@ function handleDrawOperationEvent(){
         v4.div(scalar);
         drawVector(v3, "green"); 
         drawVector(v4, "green"); 
+    }else if(op === "magnitude"){
+        console.log("Magnitude of v1: " + v1.magnitude());
+        console.log("Magnitude of v2: " + v2.magnitude());
+    }else if(op === "normalize"){
+        v1.normalize();
+        v2.normalize();
+        drawVector(v1, "green"); 
+        drawVector(v2, "green"); 
     }
 }

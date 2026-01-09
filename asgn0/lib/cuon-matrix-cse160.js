@@ -148,7 +148,7 @@ class Vector3 {
         // Insert your code here.
         // This function should change this vector (this.elements) and not create a new vector.
         var temp = this.magnitude();
-        if(temp !== 0){
+        if(temp > 0){
             this.elements[0] = this.elements[0] / temp;
             this.elements[1] = this.elements[1] / temp;
             this.elements[2] = this.elements[2] / temp;
