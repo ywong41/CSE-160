@@ -139,6 +139,9 @@ function handleDrawOperationEvent(){
     }else if(op === "angle"){
         var angle = angleBetween(v1, v2);
         console.log("Angle: " + angle);
+    }else if(op === "area"){
+        var area = areaTriangle(v1, v2);
+        console.log("Area of the triangle: " + area);
     }
 }
 
@@ -146,4 +149,12 @@ function angleBetween(v1, v2){
     var temp = Vector3.dot(v1, v2) / (v1.magnitude() * v2.magnitude());
     var angle_between = (Math.acos(temp) * 180) / Math.PI;
     return angle_between;
+}
+
+// a function areaTriangle(v1, v2) that uses the cross function to compute the area of the triangle 
+function areaTriangle(v1, v2){
+    var crossProduct = Vector3.cross(v1, v2);
+    var temp = crossProduct.magnitude(); // ||v1 x v2]] to calculate area of the parallelogram that the vectors span
+    var area = temp / 2; // area of triangle
+    return area;
 }
