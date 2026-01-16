@@ -18,7 +18,13 @@ function main() {
         console.log('Failed to retrieve WebGL content');
         return false;
     }
+
+    // assign the clear color
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);  // rbg and alpha color(transparency)
+    // apply clear and color to canvas
+    gl.clear(gl.COLOR_BUFFER_BIT);
     console.log(gl);
 
+ 
 
 }
