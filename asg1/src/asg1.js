@@ -145,18 +145,18 @@ function renderAllShapes(){
 
     // check the time at the end of the function, and show on webpage
     var duration = performance.now() - startTime;
-    // sendTextToHTML("numdot: " + len + "ms: " + Math.floor(duration) +  " fps: " + Math.floor(10000/duration)/10, "numdot");
+    sendTextToHTML("numdot: " + len + "ms: " + Math.floor(duration) +  " fps: " + Math.floor(10000/duration)/10, "numdot");
 }
 
-// // set the text of a HTML element
-// function sendTextToHTML(text, htmlID){
-//     var htmlElm = document.getElementById(htmlID);
-//     if(!htmlElm){
-//         console.log("Failed to get " + htmlID + " from HTML");
-//         return;
-//     }
-//     htmlElm.innerHTML = text;
-// }
+// set the text of a HTML element
+function sendTextToHTML(text, htmlID){
+    var htmlElm = document.getElementById(htmlID);
+    if(!htmlElm){
+        console.log("Failed to get " + htmlID + " from HTML");
+        return;
+    }
+    htmlElm.innerHTML = text;
+}
 
 // get the canvas and gl context
 function setupWebGL(){
