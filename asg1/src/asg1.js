@@ -12,28 +12,37 @@ var VERTEX_SHADER = `
     attribute vec4 a_Position;
     void main() {
         gl_Position = a_Position; 
-        // gl_PointSize = 10.0;
         gl_PointSize = u_Size;
     }`
 
 // Fragment shader program
-var FEAGMENT_SHADER = `
+var FRAGMENT_SHADER = `
     precision mediump float;
     uniform vec4 u_FragColor;
     void main() {
         gl_FragColor = u_FragColor;
     }`
 
+// constants
+const POINT = 0;
+const TRIANGLE = 1;
+const CIRCLE  = 2;
+
 // Global variable for UI
 let g_selectedColor = [1.0, 1.0, 1.0, 1.0];
 let g_selectedSize = 5;
+let g_selectedType = POINT;
 
- // Set up action for the HTML UI elements
+// Set up action for the HTML UI elements
 function addActionsForHtmlUI(){
     // button events (Shape type)
     document.getElementById('green').onclick = function() { g_selectedColor = [0.0, 1.0, 0.0, 1.0]; };
     document.getElementById('red').onclick = function() { g_selectedColor = [1.0, 0.0, 0.0, 1.0]; };
     document.getElementById('clearButton').onclick = function() { g_shapesList=[]; renderAllShapes(); };   // clear that list to clear out all the point
+
+    document.getElementById('pointButton').onclick = function() { g_selectedType=POINT};   // clear that list to clear out all the point
+    document.getElementById('triButton').onclick = function() { g_selectedType=TRIANGLE};   // clear that list to clear out all the point
+    document.getElementById('circleButton').onclick = function() { g_selectedType=CIRCLE};   // clear that list to clear out all the point
 
     // Slider events
     document.getElementById('redSlide').addEventListener('mouseup', function() { g_selectedColor[0] = this.value/100; });
@@ -52,6 +61,8 @@ function main() {
     setupWebGL();
     // set up GLSL shader program and connect to GLSL variables
     connectVariablesToGLSL();
+    console.log("GLSL program info:", gl.getProgramInfoLog(gl.program));
+    console.log("GL Errors:", gl.getError());
 
     // Set up action for the HTML UI elements
     addActionsForHtmlUI();
@@ -70,38 +81,25 @@ function main() {
 
 var g_shapesList = [];
 
-// var g_points = [];  // The array for the position of a mouse press
-// var g_colors = [];  // The array to store the color of a point
-// var g_sizes = [];   // The array to store the size of a point
-
 function click(ev) {
 
     // Extract the event click and return it in WebGL coordinates
     let [x,y] = connectCoordinatesEventToGL(ev);
     
     // Create and store the new point
-    let point = new Point();
+    let point;
+    if (g_selectedType==POINT){
+        point = new Point();
+    }else if(g_selectedType==TRIANGLE){
+        point = new Triangle();
+    }else{
+        point = new Circle();
+    }
     point.position = [x,y];
     point.color = g_selectedColor.slice();
     point.size = g_selectedSize;
     g_shapesList.push(point);
 
-    // // Store the coordinates to g_points array
-    // g_points.push([x, y]);
-
-    // // Store the coordinates to g_points array
-    // g_colors.push(g_selectedColor.slice());
-
-    // g_sizes.push(g_selectedSize);
-    /** 
-    if (x >= 0.0 && y >= 0.0) {      // First quadrant
-        g_colors.push([1.0, 0.0, 0.0, 1.0]);  // Red
-    } else if (x < 0.0 && y < 0.0) { // Third quadrant
-        g_colors.push([0.0, 1.0, 0.0, 1.0]);  // Green
-    } else {                         // Others
-        g_colors.push([1.0, 1.0, 1.0, 1.0]);  // White
-    }
-*/
     // draw every shape that is suppose to be in canvas
     renderAllShapes();
 }
@@ -169,7 +167,7 @@ function setupWebGL(){
 // compile the shader programs, attach the javascript variables to the GLSL variables
 function connectVariablesToGLSL(){
     // initialize shaders
-    if(!initShaders(gl, VERTEX_SHADER, FEAGMENT_SHADER)){
+    if(!initShaders(gl, VERTEX_SHADER, FRAGMENT_SHADER)){
         console.log('Failed to initialize shaders');
         return false;
     }
