@@ -37,6 +37,10 @@ let g_selectedSize = 5;
 let g_selectedType = POINT;
 let g_cirSegment = 10;  // default number of circle segment
 
+window.onload = function() {
+    main();
+};
+
 // Set up action for the HTML UI elements
 function addActionsForHtmlUI(){
     // button events (Shape type)
