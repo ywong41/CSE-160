@@ -4,7 +4,7 @@ class Circle{
         this.position = [0.0, 0.0, 0.0];
         this.color = [1.0, 1.0, 1.0, 1.0];
         this.size = 5.0;
-        this.segments = 10;
+        this.segments = g_cirSegment;   // store the number of segments
     }
 
     // function that rander this shape
