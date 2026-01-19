@@ -284,5 +284,3 @@ function createTriangle(x1, y1, x2, y2, x3, y3, color){
     g_shapesList.push(triangle);
     g_pictureShapes.push(triangle);
 }
-
-document.getElementById('drawPicture').onclick = drawPicture;
