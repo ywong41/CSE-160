@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Assignment 1: Painting (canvas version)</title>
+    </head>
+
+    <body>
+        <p>Mia Wong</p>
+        <p>ywong41@ucsc.edu</p>
+        <br>
+        <p>Notes to Grader: 
+            Suggested “awesome” points!
+            - I used alpha for transparent paint
+            (The water color is partially transparent in my drawings)
+            - added additional feature
+            (the numdot display shows how many shapes are currently on canvas)
+            - I manually calculated the rotation angles for each triangle in 
+              my picture so that the final drawing aligns perfectly.
+              (I coded per-triangle rotations to get my picture right)
+        </p>
+
+        <canvas id="webgl" width="400" height="400">
+        Please use a browser that supports "canvas"
+        </canvas>
+        <p id="numdot">... </p>
+        <p>
+        <button type="button" id="clearButton">Clear Canvas</button>
+        </p>
+        <!-- <button type="button" id="green">Green</button>
+        <button type="button" id="red">Red</button> -->
+        <!--button to clear canvas-->
+        <p>Drawing Mode:</p>
+        <button type="button" id="pointButton">Squares</button>
+        <!--button to draw triangle-->
+        <button type="button" id="triButton">Triangles</button>
+        <!--button to draw circle-->
+        <button type="button" id="circleButton">Circles</button>
+                
+        <p>Shape Color:</p>
+        Red <input type ="range" min="0" max="100" value="100" class="slider" id="redSlide">
+        
+        Green <input type ="range" min="0" max="100" value="100" class="slider" id="greenSlide">
+        
+        Blue <input type ="range" min="0" max="100" value="100" class="slider" id="blueSlide">
+        <p>
+        Shape Size: <input type ="range" min="5" max="40" value="5" class="slider" id="sizeSlide">
+        </p>
+        <!--Step 11: a slider to determine the number of segments in the circle-->
+        (Circles) Segment Count: <input type ="range" min="3" max="40" value="10" class="slider" id="cirSegment">
+        <p>
+        <button type="button" id="drawPicture">Draw Picture</button>
+        Description: A solitary boat sails the dark, endless ocean, ghostly and free, inspired by my adventures in Sea of Thieves.
+        </p>
+        <img src="picture.png" alt="Lonely Boat on Ocean"  width="300" height="200">
+
+
+        <script src="../lib/webgl-utils.js"></script>
+        <script src="../lib/webgl-debug.js"></script>
+        <script src="../lib/cuon-utils.js"></script>
+        <script src="Triangle.js"></script>
+        <script src="Circle.js"></script>
+        <script src="Point.js"></script>
+        <script src="asg1.js"></script>
+    </body>
+</html>
