@@ -73,8 +73,6 @@ function addActionsForHtmlUI(){
 }
 
 function main() {  
- 
-  
     // Step 3
     // set up canvas and gl
     setupWebGL();
@@ -97,7 +95,23 @@ function main() {
     // apply clear and color to canvas
     // gl.clear(gl.COLOR_BUFFER_BIT);
     // console.log(gl);
+    //renderScene();
+    requestAnimationFrame(tick);
+}
+
+var g_startTime=performance.now()/1000.0;
+var g_seconds=performance.now()/1000.0-g_startTime;
+
+// called by browser repeatly whenever its time
+function tick(){
+    g_seconds=performance.now()/1000.0-g_startTime;
+
+    // print debug info
+    console.log(g_seconds);
+    // draw everything
     renderScene();
+    // tell browser update again whenever its time
+    requestAnimationFrame(tick);
 }
 
 
@@ -169,7 +183,8 @@ function renderScene(){
     leftArm.color = [1, 1, 0, 1];
     leftArm.matrix.setTranslate(0, -.5, 0.0);
     leftArm.matrix.rotate(-5, 1, 0, 0);
-    leftArm.matrix.rotate(-g_yellowAngle, 0, 0, 1); // -g_globalAngle to move in opposite direction
+    //leftArm.matrix.rotate(-g_yellowAngle, 0, 0, 1); // -g_globalAngle to move in opposite direction
+    leftArm.matrix.rotate(45*Math.sin(g_seconds), 0, 0, 1);
     var yellowCoordinatesMat = new Matrix4 (leftArm.matrix);
     leftArm.matrix.scale(0.25, .7, .5);
     leftArm.matrix.translate(-.5,0,0);
