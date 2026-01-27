@@ -1,21 +1,10 @@
-// global variables
-let canvas;
-let gl;
-let a_Position;
-let u_FragColor;
-let u_Size;
-
-// Global variable for picture
-let g_pictureShapes = [];
-
 // Vertex shader program
 var VERTEX_SHADER = `
-    precision mediump float;
-    uniform float u_Size;
     attribute vec4 a_Position;
+    uniform mat4 u_ModelMatrix;
+    uniform mat4 u_GlobalRotateMatrix;
     void main() {
-        gl_Position = a_Position; 
-        gl_PointSize = u_Size;
+        gl_Position = u_GlobalRotateMatrix * u_ModelMatrix * a_Position; 
     }`
 
 // Fragment shader program
@@ -25,6 +14,19 @@ var FRAGMENT_SHADER = `
     void main() {
         gl_FragColor = u_FragColor;
     }`
+
+// global variables
+let canvas;
+let gl;
+let a_Position;
+let u_FragColor;
+let u_Size;
+let u_ModelMatrix;
+let u_GlobalRotateMatrix;
+
+// Global variable for picture
+let g_pictureShapes = [];
+
 
 // constants
 const POINT = 0;
@@ -36,7 +38,7 @@ let g_selectedColor = [1.0, 1.0, 1.0, 1.0];
 let g_selectedSize = 5;
 let g_selectedType = POINT;
 let g_cirSegment = 10;  // default number of circle segment
-
+let g_GlobalAngle = 0;
 window.onload = function() {
     main();
 };
@@ -59,6 +61,7 @@ function addActionsForHtmlUI(){
     document.getElementById('cirSegment').addEventListener('input', function() { g_cirSegment = parseInt(this.value); });   // a slider to control number of segments in circle 
     // Size Slider Events
     document.getElementById('sizeSlide').addEventListener('mouseup', function() { g_selectedSize = this.value; });
+    document.getElementById('angleSlide').addEventListener('mousemove', function() { g_GlobalAngle = this.value; renderAllShapes(); });
 
     document.getElementById('drawPicture').onclick = drawPicture;
 
@@ -87,8 +90,9 @@ function main() {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);  // rbg and alpha color(transparency)
 
     // apply clear and color to canvas
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    console.log(gl);
+    // gl.clear(gl.COLOR_BUFFER_BIT);
+    // console.log(gl);
+    renderAllShapes();
 }
 
 
@@ -134,6 +138,10 @@ function renderAllShapes(){
     // check the time at the start of this function
     var startTime =  performance.now();
 
+    var globalRotMat = new Matrix4();
+    globalRotMat.rotate(g_GlobalAngle, 0, 1, 0);
+
+    gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
     // Clear <canvas>
     gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -142,6 +150,30 @@ function renderAllShapes(){
     for(var i = 0; i < len; i++) {
         g_shapesList[i].render();
     }
+    // drawTriangle3D([-1.0,0.0,0.0,   -0.5,-1.0,0.0,  0.0,0.0,0.0]);
+
+    // draw a cube
+    var body = new Cube();
+    body.color = [1.0,0.0,0.0,1.0];
+    body.matrix.translate(-.25, -.5, 0.0);
+    body.matrix.scale(0.5, 1, .5);
+    body.render();
+
+    // draw a left arm
+    var leftArm = new Cube();
+    leftArm.color = [1, 1, 0, 1];
+    leftArm.matrix.setTranslate(.7, 0, 0.0);
+    leftArm.matrix.rotate(45, 0, 0, 1);
+    leftArm.matrix.scale(0.25, .7, .5);
+    leftArm.render();
+
+    // test box
+    var box = new Cube();
+    box.color = [1, 0, 1, 1];
+    box.matrix.translate(0, 0, -0.50, 0);
+    box.matrix.rotate(-30, 1, 0, 0);
+    box.matrix.scale(.5,.5,.5);
+    box.render();
 
     // check the time at the end of the function, and show on webpage
     var duration = performance.now() - startTime;
@@ -199,12 +231,26 @@ function connectVariablesToGLSL(){
         return false;
     }
 
-    // Get the storage location of u_FlagColor
-    u_Size = gl.getUniformLocation(gl.program, 'u_Size');
-    if(!u_Size){
-        console.log('Failed to get the storage location of u_Size');
-        return;
+    // // Get the storage location of u_FlagColor
+    // u_Size = gl.getUniformLocation(gl.program, 'u_Size');
+    // if(!u_Size){
+    //     console.log('Failed to get the storage location of u_Size');
+    //     return;
+    // }
+    u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
+    if (!u_ModelMatrix) {
+        console.log('Failed to get the storage location of u_ModelMatrix');
+        return false;
     }
+
+    u_GlobalRotateMatrix = gl.getUniformLocation(gl.program, 'u_GlobalRotateMatrix');
+    if(!u_GlobalRotateMatrix){
+        console.log('Failed to get the storage location of u_GlobalRotateMatrix');
+        return false;
+    }
+
+    var identityM = new Matrix4();
+    gl.uniformMatrix4fv(u_ModelMatrix, false, identityM.elements);
 }
 
 
