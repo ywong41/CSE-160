@@ -39,6 +39,7 @@ let g_selectedSize = 5;
 let g_selectedType = POINT;
 let g_cirSegment = 10;  // default number of circle segment
 let g_yellowAngle = 0;
+let g_magentaAngle = 0;
 let g_globalAngle = 0;
 window.onload = function() {
     main();
@@ -63,6 +64,8 @@ function addActionsForHtmlUI(){
     // Size Slider Events
     document.getElementById('sizeSlide').addEventListener('mouseup', function() { g_selectedSize = this.value; });
     document.getElementById('yellowSlide').addEventListener('mousemove', function() { g_yellowAngle = this.value; renderScene(); });
+    document.getElementById('magentaSlide').addEventListener('mousemove', function() { g_magentaAngle = this.value; renderScene(); });
+
     document.getElementById('angleSlide').addEventListener('mousemove', function() { g_globalAngle = this.value; renderScene(); });
 
     document.getElementById('drawPicture').onclick = drawPicture;
@@ -167,6 +170,7 @@ function renderScene(){
     leftArm.matrix.setTranslate(0, -.5, 0.0);
     leftArm.matrix.rotate(-5, 1, 0, 0);
     leftArm.matrix.rotate(-g_yellowAngle, 0, 0, 1); // -g_globalAngle to move in opposite direction
+    var yellowCoordinatesMat = new Matrix4 (leftArm.matrix);
     leftArm.matrix.scale(0.25, .7, .5);
     leftArm.matrix.translate(-.5,0,0);
     leftArm.render();
@@ -174,9 +178,11 @@ function renderScene(){
     // test box
     var box = new Cube();
     box.color = [1, 0, 1, 1];
-    box.matrix.translate(-.1, .1, .0, 0);
-    box.matrix.rotate(-30, 1, 0, 0);
-    box.matrix.scale(.2,.4,.2);
+    box.matrix = yellowCoordinatesMat;
+    box.matrix.translate(0, 0.65, 0);
+    box.matrix.rotate(g_magentaAngle, 1, 0, 0);
+    box.matrix.scale(.3,.3,.3);
+    box.matrix.translate(-.5, 0, -0.001);
     box.render();
 
     // check the time at the end of the function, and show on webpage
