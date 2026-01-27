@@ -38,7 +38,8 @@ let g_selectedColor = [1.0, 1.0, 1.0, 1.0];
 let g_selectedSize = 5;
 let g_selectedType = POINT;
 let g_cirSegment = 10;  // default number of circle segment
-let g_GlobalAngle = 0;
+let g_yellowAngle = 0;
+let g_globalAngle = 0;
 window.onload = function() {
     main();
 };
@@ -48,7 +49,7 @@ function addActionsForHtmlUI(){
     // button events (Shape type)
     // document.getElementById('green').onclick = function() { g_selectedColor = [0.0, 1.0, 0.0, 1.0]; };
     // document.getElementById('red').onclick = function() { g_selectedColor = [1.0, 0.0, 0.0, 1.0]; };
-    document.getElementById('clearButton').onclick = function() { g_shapesList=[]; renderAllShapes(); };   // clear that list to clear out all the point
+    document.getElementById('clearButton').onclick = function() { g_shapesList=[]; renderScene(); };   // clear that list to clear out all the point
 
     document.getElementById('pointButton').onclick = function() { g_selectedType=POINT};   // clear that list to clear out all the point
     document.getElementById('triButton').onclick = function() { g_selectedType=TRIANGLE};   // clear that list to clear out all the point
@@ -61,7 +62,8 @@ function addActionsForHtmlUI(){
     document.getElementById('cirSegment').addEventListener('input', function() { g_cirSegment = parseInt(this.value); });   // a slider to control number of segments in circle 
     // Size Slider Events
     document.getElementById('sizeSlide').addEventListener('mouseup', function() { g_selectedSize = this.value; });
-    document.getElementById('angleSlide').addEventListener('mousemove', function() { g_GlobalAngle = this.value; renderAllShapes(); });
+    document.getElementById('yellowSlide').addEventListener('mousemove', function() { g_yellowAngle = this.value; renderScene(); });
+    document.getElementById('angleSlide').addEventListener('mousemove', function() { g_globalAngle = this.value; renderScene(); });
 
     document.getElementById('drawPicture').onclick = drawPicture;
 
@@ -92,7 +94,7 @@ function main() {
     // apply clear and color to canvas
     // gl.clear(gl.COLOR_BUFFER_BIT);
     // console.log(gl);
-    renderAllShapes();
+    renderScene();
 }
 
 
@@ -118,7 +120,7 @@ function handleClicks(ev) {
     g_shapesList.push(point);
 
     // draw every shape that is suppose to be in canvas
-    renderAllShapes();
+    renderScene();
 }
 
 function connectCoordinatesEventToGL(ev){
@@ -133,17 +135,16 @@ function connectCoordinatesEventToGL(ev){
 }
 
 // Draw every shape that suppose to be in canvas
-function renderAllShapes(){
+function renderScene(){
 
     // check the time at the start of this function
     var startTime =  performance.now();
 
     var globalRotMat = new Matrix4();
-    globalRotMat.rotate(g_GlobalAngle, 0, 1, 0);
-
+    globalRotMat.rotate(g_globalAngle, 0, 1, 0);    
     gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
     // Clear <canvas>
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // var len = g_points.length;
     var len = g_shapesList.length;
@@ -155,24 +156,27 @@ function renderAllShapes(){
     // draw a cube
     var body = new Cube();
     body.color = [1.0,0.0,0.0,1.0];
-    body.matrix.translate(-.25, -.5, 0.0);
-    body.matrix.scale(0.5, 1, .5);
+    body.matrix.translate(-.25, -.75, 0.0);
+    body.matrix.rotate(-5,1,0,0);
+    body.matrix.scale(0.5, .3, .5);
     body.render();
 
     // draw a left arm
     var leftArm = new Cube();
     leftArm.color = [1, 1, 0, 1];
-    leftArm.matrix.setTranslate(.7, 0, 0.0);
-    leftArm.matrix.rotate(45, 0, 0, 1);
+    leftArm.matrix.setTranslate(0, -.5, 0.0);
+    leftArm.matrix.rotate(-5, 1, 0, 0);
+    leftArm.matrix.rotate(-g_yellowAngle, 0, 0, 1); // -g_globalAngle to move in opposite direction
     leftArm.matrix.scale(0.25, .7, .5);
+    leftArm.matrix.translate(-.5,0,0);
     leftArm.render();
 
     // test box
     var box = new Cube();
     box.color = [1, 0, 1, 1];
-    box.matrix.translate(0, 0, -0.50, 0);
+    box.matrix.translate(-.1, .1, .0, 0);
     box.matrix.rotate(-30, 1, 0, 0);
-    box.matrix.scale(.5,.5,.5);
+    box.matrix.scale(.2,.4,.2);
     box.render();
 
     // check the time at the end of the function, and show on webpage
@@ -207,6 +211,7 @@ function setupWebGL(){
         console.log('Failed to retrieve WebGL content');
         return false;
     }
+    gl.enable(gl.DEPTH_TEST);
 }
 
 // compile the shader programs, attach the javascript variables to the GLSL variables
@@ -298,7 +303,7 @@ function drawPicture(){
     createTriangle(0.24, 0.65, 0.24, 0.8, 0.21, 0.8, wColor);
     createTriangle(0.16, 0.67, 0.185, 0.8, 0.21, 0.67, wColor);
 
-    renderAllShapes();
+    renderScene();
 }
 
 
