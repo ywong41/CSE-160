@@ -18,17 +18,22 @@
         </canvas>
         <p id="numdot">... </p>
         
-
-        <!-- <input type="range" id="angleSlide"> -->
+        <p>
         Tail Slider:
         <input type ="range" min="-10" max="10" value="0" class="slider" id="tailSlide">
         <button id="tailOnButton">Tail On</button>
         <button id="tailOffButton">Tail Off</button>
-
-        <input type="range" id="jawSlide">
+        </p>
+        
+        <p>
+        Jaw Slider:
+        <input type ="range" min="-1" max="25" value="0" class="slider" id="jawSlide">
         <button id="jawOnButton">Jaw On</button>
         <button id="jawOffButton">Jaw Off</button>
-
+        </p>
+        
+        <button id="walkOnButton">Walk On</button>
+        <button id="walkOffButton">Walk Off</button>
 
         <!-- <p>
         Yellow: <input type ="range" min="-45" max="45" value="0" class="slider" id="yellowSlide">
@@ -40,6 +45,15 @@
         <button type="button" id="animationMagentaOnButton">ON</button>
         <button type="button" id="animationMagentaOffButton">OFF</button> -->
    
+        Thigh
+        <input type="range" id="thighSlide" min="-3" max="2" value="0" step="1">
+
+        Calf
+        <input type="range" id="calfSlide" min="-1" max="10" value="0" step="1">
+
+        Foot
+        <input type="range" id="footSlide" min="-5" max="3" value="0" step="1">
+
 
         </p>
         <p>
@@ -54,8 +68,10 @@
         <script src="../lib/cuon-matrix.js"></script>
         <script src="Triangle.js"></script>
         <script src="Circle.js"></script>
+        <script src="Cylinder.js"></script>
         <script src="Point.js"></script>
         <script src="Cube.js"></script>
+        <script src="Pryamid.js"></script>
         <script src="asg2.js"></script>
     </body>
 </html>

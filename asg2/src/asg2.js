@@ -1,6 +1,6 @@
 /**
  * Reference: I asked ChatGPT to model and verify the matrix for the blocky animal.
- * Also, it guide me through functions like addMouseControl()
+ * Also, it guide me through functions like addMouseControl(), and how to make jawJoint to follow the jaw of the blocky animal
  */
 
 // Vertex shader program
@@ -23,10 +23,11 @@ var FRAGMENT_SHADER = `
 // Croc palette (RGBA)
 const CROC_DARK  = [0.18, 0.259, 0.102, 1.0];
 const CROC_MID   = [0.29, 0.392, 0.176, 1.0];
-const CROC_LIGHT = [0.388, 0.431, 0.294, 1.0];
+const CROC_LIGHT = [0.24, 0.392, 0.176, 1.0];
 const CROC_BELLY = [0.624, 0.643, 0.396, 1.0];
 const CROC_TOOTH = [0.95, 0.95, 0.95, 1.0];
-const CROC_EYE   = [0.05, 0.05, 0.05, 1.0];
+const CROC_EYE   = [0.78, 0.76, 0.09, 1.0];;
+const CROC_IRIS   = [0.05, 0.05, 0.05, 1.0];
 
 // Add mouse control to rotate your animal
 // rotation for mouse
@@ -51,6 +52,8 @@ let g_yellowAngle = 0;
 let g_magentaAngle = 0;
 let g_yellowAnimation = false;
 let g_magentaAnimation = false;
+let g_walkAnimation = false;
+
 
 // Crocodile 
 let g_globalAngle = 0;
@@ -72,12 +75,37 @@ window.onload = function() {
 function addActionsForHtmlUI(){
    
     // Slider Events
-    document.getElementById('angleSlide').addEventListener('input', function() { g_globalAngle = this.value; renderScene(); });
-    
-    document.getElementById('tailSlide').addEventListener('input', function() { g_tailAngle = this.value; renderScene();});
-    document.getElementById('jawSlide').addEventListener('input', function() {
-        g_jawAngle = this.value; renderScene();
+    document.getElementById('angleSlide').addEventListener('input', function() {
+    g_globalAngle = parseFloat(this.value);
+    renderScene();
     });
+
+    document.getElementById('tailSlide').addEventListener('input', function() {
+    g_tailAngle = parseFloat(this.value);
+    renderScene();
+    });
+
+    document.getElementById('jawSlide').addEventListener('input', function() {
+    g_jawAngle = parseFloat(this.value);
+    renderScene();
+    });
+
+
+    document.getElementById('thighSlide').addEventListener('input', function () {
+    g_thigh = parseFloat(this.value);
+    renderScene();
+    });
+
+    document.getElementById('calfSlide').addEventListener('input', function () {
+    g_calf = parseFloat(this.value);
+    renderScene();
+    });
+
+    document.getElementById('footSlide').addEventListener('input', function () {
+    g_foot = parseFloat(this.value);
+    renderScene();
+    });
+
 
     // Button Events
     document.getElementById('tailOnButton').onclick = function() { g_tailAnimation  = true; };
@@ -85,6 +113,9 @@ function addActionsForHtmlUI(){
 
     document.getElementById('jawOnButton').onclick = function() { g_jawAnimation = true; };
     document.getElementById('jawOffButton').onclick = function() { g_jawAnimation = false; };
+
+    document.getElementById('walkOnButton').onclick  = () => { g_walkAnimation = true; };
+    document.getElementById('walkOffButton').onclick = () => { g_walkAnimation = false; };
 
     document.getElementById('angleSlide').addEventListener('mousemove', function() { g_globalAngle = this.value; renderScene(); });
 
@@ -162,8 +193,15 @@ function updateAnimationAngles(){
         g_tailAngle = 15*Math.sin(g_seconds); // tail wags
     }
     if(g_jawAnimation){
-        g_jawAngle = 15*Math.sin(g_seconds*2);  // jaw open and close
+        g_jawAngle = 36*Math.sin(g_seconds*2);  // jaw open and close
+        if (g_jawAngle < 0) g_jawAngle = 0;        // never close past 0
     } 
+    if (g_walkAnimation) {
+        g_thigh = 16 * Math.sin(g_seconds * 4);
+        g_calf  = 15 * Math.sin(g_seconds * 4 + Math.PI / 2);
+        g_foot  = 15 * Math.sin(g_seconds * 4 + Math.PI);
+    }
+
 }
 
 // Draw every shape that suppose to be in canvas
@@ -244,13 +282,13 @@ function renderScene(){
     const snout = new Matrix4(base);
     snout.translate(1.10, 0.01, 0.09);
     snout.scale(0.30, 0.12, 0.22);
-    drawCube(snout, CROC_BELLY);
+    drawCube(snout, CROC_MID);
 
-    // ---- Upper jaw (fixed) ----
-    const upperJaw = new Matrix4(base);
-    upperJaw.translate(1.10, 0.06, 0.09);
-    upperJaw.scale(0.30, 0.05, 0.22);
-    drawCube(upperJaw, CROC_LIGHT);
+    // // ---- Upper jaw (fixed) ----
+    // const upperJaw = new Matrix4(base);
+    // upperJaw.translate(1.10, 0.06, 0.09);
+    // upperJaw.scale(0.30, 0.05, 0.22);
+    // drawCube(upperJaw, CROC_LIGHT);
 
     // ---- Lower jaw (animated) ----
     const jawJoint = new Matrix4(base);
@@ -260,31 +298,81 @@ function renderScene(){
     const lowerJaw = new Matrix4(jawJoint);
     lowerJaw.translate(0.00, -0.06, -0.11);    // offset so it rotates “down”
     lowerJaw.scale(0.30, 0.05, 0.22);
-    drawCube(lowerJaw, CROC_BELLY);
+    drawCube(lowerJaw, CROC_MID);
 
-    // Teeth (simple row on snout)
+    // Teeth in Pyramid shape
     for (let i = 0; i < 6; i++) {
-        const tTop = new Matrix4(base);
-        tTop.translate(1.13 + i * 0.04, 0.04, 0.09);
-        tTop.scale(0.015, 0.03, 0.03);
-        drawCube(tTop, CROC_TOOTH);
+        // Upper teeth (fixed to head/base)
+        const topTooth = new Pyramid();
+        topTooth.color = CROC_TOOTH;
+        topTooth.parentMatrix = base;
+        topTooth.position = [1.13 + i * 0.04, 0.04, 0.09];
+        topTooth.size = 0.0465;
+        topTooth.scale = [1.0, -1.0, 1.0];   // flip Y so apex points down
+        topTooth.render();
 
-        const tBot = new Matrix4(jawJoint);
-        tBot.translate(0.03 + i * 0.04, -0.06, -0.11);
-        tBot.scale(0.015, 0.03, 0.03);
-        drawCube(tBot, CROC_TOOTH);
+        // upper left
+        const topLeftTooth = new Pyramid();
+        topLeftTooth.color = CROC_TOOTH;
+        topLeftTooth.parentMatrix = base;
+        topLeftTooth.position = [1.13 + i * 0.04, 0.04, 0.263];
+        topLeftTooth.size = 0.0465;
+        topLeftTooth.scale = [1.0, -1.0, 1.0];   // flip Y so apex points down
+        topLeftTooth.render();
+
+        // Lower teeth (follow the jaw animation)
+        const botTooth = new Pyramid();
+        botTooth.color = CROC_TOOTH;
+        botTooth.parentMatrix = jawJoint;
+        botTooth.position = [0.03 + i * 0.04, -0.02, -0.1];
+        botTooth.size = 0.0465;
+        botTooth.scale = [1.0, 1.0, 1.0];    // apex points up
+        botTooth.render();
+
+        // lower left
+        const botLeftTooth = new Pyramid();
+        botLeftTooth.color = CROC_TOOTH;
+        botLeftTooth.parentMatrix = jawJoint;
+        botLeftTooth.position = [0.03 + i * 0.04, -0.02, 0.063];
+        botLeftTooth.size = 0.0465;
+        botLeftTooth.scale = [1.0, 1.0, 1.0];
+        botLeftTooth.render();
     }
+
 
     // Eyes
     const eye1 = new Matrix4(base);
-    eye1.translate(0.98, 0.18, 0.11);
-    eye1.scale(0.03, 0.03, 0.03);
+    eye1.translate(1.05, 0.135, 0.07);
+    eye1.scale(0.1, 0.055, 0.1);
     drawCube(eye1, CROC_EYE);
 
     const eye2 = new Matrix4(base);
-    eye2.translate(0.98, 0.18, 0.26);
-    eye2.scale(0.03, 0.03, 0.03);
+    eye2.translate(1.05, 0.135, 0.24);
+    eye2.scale(0.1, 0.055, 0.1);
     drawCube(eye2, CROC_EYE);
+
+    const iris1 = new Cylinder();
+    iris1.color = CROC_IRIS;
+    iris1.parentMatrix = base;
+    iris1.position = [1.155, 0.16, 0.13];
+    iris1.radius = 0.03;
+    iris1.height = 0.03;
+    iris1.segments = 20;
+    iris1.scale = [0.87,0.87,0.87];
+    iris1.rotation = [90, 0, 0, 1];   // rotate z axis
+    iris1.render();
+
+    const iris2 = new Cylinder();
+    iris2.color = CROC_IRIS;
+    iris2.parentMatrix = base;
+    iris2.position = [1.155, 0.16, 0.293];
+    iris2.radius = 0.03;
+    iris2.height = 0.03;
+    iris2.segments = 20;
+    iris2.scale = [0.87,0.87,0.87];
+    iris2.rotation = [90, 0, 0, 1];   // rotate z axis
+    iris2.render();
+
 
     // 4 Legs
     function drawLeg(x, y, z, sideSign){
@@ -446,8 +534,8 @@ function addMouseControl() {
         let dx = ev.clientX - g_lastMouseX;
         let dy = ev.clientY - g_lastMouseY;
 
-        g_mouseXAngle -= dx * 0.5;
-        g_mouseYAngle -= dy * 0.5;
+        g_mouseXAngle -= dx * 0.3;
+        g_mouseYAngle -= dy * 0.3;
 
         g_lastMouseX = ev.clientX;
         g_lastMouseY = ev.clientY;
