@@ -1,6 +1,6 @@
 /**
  * Reference: I asked ChatGPT to model and verify the matrix for the blocky animal.
- * Also, 
+ * Also, it guide me through functions like addMouseControl()
  */
 
 // Vertex shader program
@@ -29,6 +29,13 @@ const CROC_TOOTH = [0.95, 0.95, 0.95, 1.0];
 const CROC_EYE   = [0.05, 0.05, 0.05, 1.0];
 
 // Add mouse control to rotate your animal
+// rotation for mouse
+let g_mouseXAngle = 0;  // around Y-axis
+let g_mouseYAngle = 0;  // around X-axis
+let g_lastMouseX = 0;
+let g_lastMouseY = 0;
+let g_mouseDragging = false;
+
 
 // global variables
 let canvas;
@@ -89,6 +96,8 @@ function main() {
     connectVariablesToGLSL();
     // Set up action for the HTML UI elements
     addActionsForHtmlUI();
+
+    addMouseControl(); 
 
     // specify the clear color
     gl.clearColor(0.5, 0.8, 0.5, 1.0);  // a greenish background
@@ -165,7 +174,8 @@ function renderScene(){
 
     // Global rotation
     var globalRotMat = new Matrix4();
-    globalRotMat.rotate(g_globalAngle, 0, 1, 0);    
+    globalRotMat.rotate(g_mouseYAngle, 1, 0, 0);   
+    globalRotMat.rotate(g_mouseXAngle + g_globalAngle, 0, 1, 0);
     gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
 
     // Clear <canvas>
@@ -295,11 +305,11 @@ function renderScene(){
         drawCube(calf, CROC_DARK);
 
         const ankle = new Matrix4(knee);
-        ankle.translate(0.05, -0.08, 0.0);
+        ankle.translate(0.05, -0.05, -0.05);
         ankle.rotate(g_foot, 0, 0, 1);
 
         const foot = new Matrix4(ankle);
-        foot.translate(-0.02, 0.05, -0.03 * sideSign);
+        foot.translate(-0.01, 0.04, -0.05 * sideSign);
         foot.scale(0.14, 0.04, 0.16);
         drawCube(foot, CROC_DARK);
     }
@@ -419,4 +429,29 @@ function drawCube(matrix, color) {
     gl.uniform4f(u_FragColor, color[0]*0.6, color[1]*0.6, color[2]*0.6, color[3]);
     drawTriangle3D([0,0,0, 1,0,1, 0,0,1]);
     drawTriangle3D([0,0,0, 1,0,0, 1,0,1]);
+}
+
+function addMouseControl() {
+    canvas.onmousedown = ev => {
+        g_mouseDragging = true;
+        g_lastMouseX = ev.clientX;
+        g_lastMouseY = ev.clientY;
+    };
+
+    canvas.onmouseup = canvas.onmouseleave = ev => g_mouseDragging = false;
+
+    canvas.onmousemove = ev => {
+        if (!g_mouseDragging) return;  // only rotate when dragging
+
+        let dx = ev.clientX - g_lastMouseX;
+        let dy = ev.clientY - g_lastMouseY;
+
+        g_mouseXAngle -= dx * 0.5;
+        g_mouseYAngle -= dy * 0.5;
+
+        g_lastMouseX = ev.clientX;
+        g_lastMouseY = ev.clientY;
+
+        renderScene();
+    };
 }
