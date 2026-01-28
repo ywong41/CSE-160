@@ -17,50 +17,25 @@
         Please use a browser that supports "canvas"
         </canvas>
         <p id="numdot">... </p>
-        <p>
-        <button type="button" id="clearButton">Clear Canvas</button>
-        </p>
-        <!-- <button type="button" id="green">Green</button>
-        <button type="button" id="red">Red</button> -->
-        <!--button to clear canvas-->
-        <p>Drawing Mode:</p>
-        <button type="button" id="pointButton">Squares</button>
-        <!--button to draw triangle-->
-        <button type="button" id="triButton">Triangles</button>
-        <!--button to draw circle-->
-        <button type="button" id="circleButton">Circles</button>
-                
-        <p>Shape Color:</p>
-        Red <input type ="range" min="0" max="100" value="100" class="slider" id="redSlide">
-        
-        Green <input type ="range" min="0" max="100" value="100" class="slider" id="greenSlide">
-        
-        Blue <input type ="range" min="0" max="100" value="100" class="slider" id="blueSlide">
-        <p>
-        Shape Size: <input type ="range" min="5" max="40" value="5" class="slider" id="sizeSlide">
-        </p>
-        <!--Step 11: a slider to determine the number of segments in the circle-->
-        (Circles) Segment Count: <input type ="range" min="3" max="40" value="10" class="slider" id="cirSegment">
         
         <p>
         Yellow: <input type ="range" min="-45" max="45" value="0" class="slider" id="yellowSlide">
-        magenta: <input type ="range" min="-45" max="45" value="0" class="slider" id="magentaSlide">
-
-          <!--animation on/off-->
         Animation:
         <button type="button" id="animationYellowOnButton">ON</button>
         <button type="button" id="animationYellowOffButton">OFF</button>
 
+        magenta: <input type ="range" min="-45" max="45" value="0" class="slider" id="magentaSlide">
         <button type="button" id="animationMagentaOnButton">ON</button>
         <button type="button" id="animationMagentaOffButton">OFF</button>
+       
+
+   
 
         </p>
         <p>
         Camera Angle: <input type ="range" min="0" max="360" value="5" class="slider" id="angleSlide">
         </p>
-        <button type="button" id="drawPicture">Draw Picture</button>
-
-      
+    
 
 
         <script src="../lib/webgl-utils.js"></script>
