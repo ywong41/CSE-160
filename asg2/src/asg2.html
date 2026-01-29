@@ -20,47 +20,35 @@
         
         <p>
         Tail Slider:
-        <input type ="range" min="-10" max="10" value="0" class="slider" id="tailSlide">
+        Tail 1 (First-level joint slider):
+        <input type="range" id="tail1Slide" min="-45" max="45" value="25" step="1">
+        Tail 2 (Second-level joint slider): 
+        <input type="range" id="tail2Slide" min="-60" max="60" value="10" step="1">
         <button id="tailOnButton">Tail On</button>
         <button id="tailOffButton">Tail Off</button>
         </p>
         
-        <p>
+        
         Jaw Slider:
-        <input type ="range" min="-1" max="25" value="0" class="slider" id="jawSlide">
+        <input type ="range" min="-5" max="55" value="0" class="slider" id="jawSlide">
         <button id="jawOnButton">Jaw On</button>
         <button id="jawOffButton">Jaw Off</button>
         </p>
         
+        <p>
+        Thigh Slider:
+        <input type="range" id="thighSlide" min="-25" max="15" value="0" step="1">
+        Calf Slider:
+        <input type="range" id="calfSlide" min="-10" max="12" value="0" step="1">
+        Foot Slider:
+        <input type="range" id="footSlide" min="-13" max="13" value="0" step="1">
         <button id="walkOnButton">Walk On</button>
         <button id="walkOffButton">Walk Off</button>
-
-        <!-- <p>
-        Yellow: <input type ="range" min="-45" max="45" value="0" class="slider" id="yellowSlide">
-        Animation:
-        <button type="button" id="animationYellowOnButton">ON</button>
-        <button type="button" id="animationYellowOffButton">OFF</button>
-
-        magenta: <input type ="range" min="-45" max="45" value="0" class="slider" id="magentaSlide">
-        <button type="button" id="animationMagentaOnButton">ON</button>
-        <button type="button" id="animationMagentaOffButton">OFF</button> -->
-   
-        Thigh
-        <input type="range" id="thighSlide" min="-3" max="2" value="0" step="1">
-
-        Calf
-        <input type="range" id="calfSlide" min="-1" max="10" value="0" step="1">
-
-        Foot
-        <input type="range" id="footSlide" min="-5" max="3" value="0" step="1">
-
-
         </p>
+
         <p>
         Camera Angle: <input type ="range" min="0" max="360" value="5" class="slider" id="angleSlide">
         </p>
-    
-
 
         <script src="../lib/webgl-utils.js"></script>
         <script src="../lib/webgl-debug.js"></script>
@@ -71,7 +59,7 @@
         <script src="Cylinder.js"></script>
         <script src="Point.js"></script>
         <script src="Cube.js"></script>
-        <script src="Pryamid.js"></script>
+        <script src="Pyramid.js"></script>
         <script src="asg2.js"></script>
     </body>
 </html>

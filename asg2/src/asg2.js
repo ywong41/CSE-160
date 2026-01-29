@@ -1,15 +1,15 @@
 /**
  * Reference: I asked ChatGPT to model and verify the matrix for the blocky animal.
- * Also, it guide me through functions like addMouseControl(), and how to make jawJoint to follow the jaw of the blocky animal
+ * Also, it guides me through functions like addMouseControl() and implement the poke animation.
  */
 
 // Vertex shader program
 var VERTEX_SHADER = `
     attribute vec4 a_Position;
     uniform mat4 u_ModelMatrix;
-    uniform mat4 u_GlobalRotateMatrix;
+    uniform mat4 u_GlobalRotation;
     void main() {
-        gl_Position = u_GlobalRotateMatrix * u_ModelMatrix * a_Position; 
+        gl_Position = u_GlobalRotation * u_ModelMatrix * a_Position; 
     }`
 
 // Fragment shader program
@@ -31,8 +31,8 @@ const CROC_IRIS   = [0.05, 0.05, 0.05, 1.0];
 
 // Add mouse control to rotate your animal
 // rotation for mouse
-let g_mouseXAngle = 0;  // around Y-axis
-let g_mouseYAngle = 0;  // around X-axis
+let g_mouseXAngle = 58;  // around Y-axis
+let g_mouseYAngle = -30;  // around X-axis
 let g_lastMouseX = 0;
 let g_lastMouseY = 0;
 let g_mouseDragging = false;
@@ -44,20 +44,16 @@ let gl;
 let a_Position;
 let u_FragColor;
 let u_ModelMatrix;
-let u_GlobalRotateMatrix;
+let u_GlobalRotation;
 
 // Global variable for UI
-let g_selectedColor = [1.0, 1.0, 1.0, 1.0];
-let g_yellowAngle = 0;
-let g_magentaAngle = 0;
-let g_yellowAnimation = false;
-let g_magentaAnimation = false;
 let g_walkAnimation = false;
 
 
 // Crocodile 
 let g_globalAngle = 0;
-let g_tailAngle = 0;
+let g_tail1Angle = 25;   // near body
+let g_tail2Angle = 10;   // tip
 let g_jawAngle = 0;
 let g_tailAnimation = false;
 let g_jawAnimation = false;
@@ -67,6 +63,15 @@ let g_thigh = 0;
 let g_calf  = 0;
 let g_foot  = 0;
 
+// Poke / explode animation
+let g_pokeActive = false;
+let g_pokeStart = 0;
+let g_prevSeconds = 0;
+const POKE_DURATION = 2.5;
+const EXPLODE_AT = 0.55;
+let g_money = []; 
+
+
 window.onload = function() {
     main();
 };
@@ -75,49 +80,21 @@ window.onload = function() {
 function addActionsForHtmlUI(){
    
     // Slider Events
-    document.getElementById('angleSlide').addEventListener('input', function() {
-    g_globalAngle = parseFloat(this.value);
-    renderScene();
-    });
-
-    document.getElementById('tailSlide').addEventListener('input', function() {
-    g_tailAngle = parseFloat(this.value);
-    renderScene();
-    });
-
-    document.getElementById('jawSlide').addEventListener('input', function() {
-    g_jawAngle = parseFloat(this.value);
-    renderScene();
-    });
-
-
-    document.getElementById('thighSlide').addEventListener('input', function () {
-    g_thigh = parseFloat(this.value);
-    renderScene();
-    });
-
-    document.getElementById('calfSlide').addEventListener('input', function () {
-    g_calf = parseFloat(this.value);
-    renderScene();
-    });
-
-    document.getElementById('footSlide').addEventListener('input', function () {
-    g_foot = parseFloat(this.value);
-    renderScene();
-    });
-
+    document.getElementById('angleSlide').addEventListener('input', function() { g_globalAngle = parseFloat(this.value); renderScene(); });
+    document.getElementById('tail1Slide').addEventListener('input', function() { g_tail1Angle = parseFloat(this.value); renderScene(); });
+    document.getElementById('tail2Slide').addEventListener('input', function() { g_tail2Angle = parseFloat(this.value); renderScene(); });
+    document.getElementById('jawSlide').addEventListener('input', function() { g_jawAngle = parseFloat(this.value); renderScene(); });
+    document.getElementById('thighSlide').addEventListener('input', function () { g_thigh = parseFloat(this.value); renderScene(); });
+    document.getElementById('calfSlide').addEventListener('input', function () { g_calf = parseFloat(this.value); renderScene(); });
+    document.getElementById('footSlide').addEventListener('input', function () { g_foot = parseFloat(this.value); renderScene(); });
 
     // Button Events
     document.getElementById('tailOnButton').onclick = function() { g_tailAnimation  = true; };
     document.getElementById('tailOffButton').onclick = function() { g_tailAnimation  = false; };
-
     document.getElementById('jawOnButton').onclick = function() { g_jawAnimation = true; };
     document.getElementById('jawOffButton').onclick = function() { g_jawAnimation = false; };
-
-    document.getElementById('walkOnButton').onclick  = () => { g_walkAnimation = true; };
-    document.getElementById('walkOffButton').onclick = () => { g_walkAnimation = false; };
-
-    document.getElementById('angleSlide').addEventListener('mousemove', function() { g_globalAngle = this.value; renderScene(); });
+    document.getElementById('walkOnButton').onclick  = function() { g_walkAnimation = true; };
+    document.getElementById('walkOffButton').onclick = function() { g_walkAnimation = false; };
 
 }
 
@@ -142,40 +119,19 @@ var g_seconds=performance.now()/1000.0-g_startTime;
 function tick(){
     g_seconds=performance.now()/1000.0-g_startTime;
 
+    // print debug info
+    console.log(g_seconds);
     // Update animation angles
     updateAnimationAngles();
-
+    
     // draw everything
     renderScene();
     // tell browser update again whenever its time
     requestAnimationFrame(tick);
 }
 
-
 var g_shapesList = [];  // contains the list of all shapes that need to be drawn
 
-function handleClicks(ev) {
-
-    // Extract the event click and return it in WebGL coordinates
-    let [x,y] = connectCoordinatesEventToGL(ev);
-    
-    // Create and store the new point
-    let point;
-    if (g_selectedType==POINT){
-        point = new Point();
-    }else if(g_selectedType==TRIANGLE){
-        point = new Triangle();
-    }else{
-        point = new Circle();
-    }
-    point.position = [x,y];
-    point.color = g_selectedColor.slice();
-    point.size = g_selectedSize;
-    g_shapesList.push(point);
-
-    // draw every shape that is suppose to be in canvas
-    renderScene();
-}
 
 function connectCoordinatesEventToGL(ev){
     var x = ev.clientX; // x coordinate of a mouse pointer
@@ -189,19 +145,53 @@ function connectCoordinatesEventToGL(ev){
 }
 
 function updateAnimationAngles(){
-    if(g_tailAnimation){
-        g_tailAngle = 15*Math.sin(g_seconds); // tail wags
+    const dt = g_seconds - g_prevSeconds;
+    g_prevSeconds = g_seconds;
+
+    if (g_pokeActive) {
+        const t = g_seconds - g_pokeStart;
+
+        // jaw opens + tail shakes before explosion
+        if (t < EXPLODE_AT) {
+        g_jawAngle = 35 + 10 * Math.sin(t * 25);
+        g_tail1Angle = 20 * Math.sin(t * 30);
+        } else {
+        // after explosion, update money particles
+        for (const m of g_money) {
+            m.life -= dt;
+
+            m.v[1] -= 0.9 * dt;
+            m.v[0] *= (1 - 0.25 * dt);
+            m.v[2] *= (1 - 0.25 * dt);
+
+            m.p[0] += m.v[0] * dt;
+            m.p[1] += m.v[1] * dt;
+            m.p[2] += m.v[2] * dt;
+            m.r += m.vr * dt;
+        }
+            g_money = g_money.filter(m => m.life > 0);
+        }
+
+        if (t > POKE_DURATION) {
+            g_pokeActive = false;
+            g_money = [];
+        }
     }
+
+    if (g_tailAnimation) {
+        g_tail1Angle = 20 * Math.sin(g_seconds);
+        g_tail2Angle = 35 * Math.sin(g_seconds + Math.PI / 3);
+    }
+
     if(g_jawAnimation){
         g_jawAngle = 36*Math.sin(g_seconds*2);  // jaw open and close
-        if (g_jawAngle < 0) g_jawAngle = 0;        // never close past 0
+        if (g_jawAngle < 0) g_jawAngle = 0; // never close past 0
     } 
     if (g_walkAnimation) {
         g_thigh = 16 * Math.sin(g_seconds * 4);
         g_calf  = 15 * Math.sin(g_seconds * 4 + Math.PI / 2);
         g_foot  = 15 * Math.sin(g_seconds * 4 + Math.PI);
     }
-
 }
 
 // Draw every shape that suppose to be in canvas
@@ -214,15 +204,10 @@ function renderScene(){
     var globalRotMat = new Matrix4();
     globalRotMat.rotate(g_mouseYAngle, 1, 0, 0);   
     globalRotMat.rotate(g_mouseXAngle + g_globalAngle, 0, 1, 0);
-    gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
+    gl.uniformMatrix4fv(u_GlobalRotation, false, globalRotMat.elements);
 
     // Clear <canvas>
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    var len = g_shapesList.length;
-    for(var i = 0; i < len; i++) {
-        g_shapesList[i].render();
-    }
 
     // -------------------------
     // Crocodile body blocks
@@ -231,6 +216,18 @@ function renderScene(){
     // Base pose (move the whole croc here)
     const base = new Matrix4();
     base.translate(-0.55, -0.15, 0.0);
+
+    // poke animation: explode and money burst
+    if (g_pokeActive && (g_seconds - g_pokeStart) >= EXPLODE_AT) {
+    for (const m of g_money) {
+        const bill = new Matrix4(base);
+        bill.translate(m.p[0], m.p[1], m.p[2]);
+        bill.rotate(m.r, 0, 1, 0);
+        bill.scale(0.06, 0.03, 0.002);     // flat bill
+        drawCube(bill, [0.10, 0.65, 0.20, 1.0]);
+    }
+    return; // hide the croc after explosion
+    }
 
     // ---- Body ----
     const body = new Matrix4(base);
@@ -252,26 +249,28 @@ function renderScene(){
     }
 
     // ---- Tail (with animation) ----
-    // Tail joint at the back of the body
-    const tailJoint = new Matrix4(base);
-    tailJoint.translate(0.00, 0.10, 0.20);
-    tailJoint.rotate(-g_tailAngle, 0, 1, 0);
+    // Tail joint 1 (attached to body)
+    const tailJoint1 = new Matrix4(base);
+    tailJoint1.translate(0.00, 0.10, 0.20);
+    tailJoint1.rotate(-g_tail1Angle, 0, 1, 0);
 
     // Tail part 1
-    const tail1 = new Matrix4(tailJoint);
+    const tail1 = new Matrix4(tailJoint1);
     tail1.translate(-0.30, -0.06, -0.08);
     tail1.scale(0.30, 0.14, 0.16);
     drawCube(tail1, CROC_DARK);
 
-    // Tail part 2
-    const tail2Joint = new Matrix4(tailJoint);
-    tail2Joint.translate(-0.30, 0.00, 0.00);
-    tail2Joint.rotate(-g_tailAngle * 0.6, 0, 1, 0);
+    // Tail joint 2 (at end of tail part 1)
+    const tailJoint2 = new Matrix4(tailJoint1);
+    tailJoint2.translate(-0.30, 0.00, 0.00);
+    tailJoint2.rotate(-g_tail2Angle, 0, 1, 0);
 
-    const tail2 = new Matrix4(tail2Joint);
+    // Tail part 2 (tip)
+    const tail2 = new Matrix4(tailJoint2);
     tail2.translate(-0.24, -0.05, -0.06);
     tail2.scale(0.24, 0.12, 0.12);
     drawCube(tail2, CROC_MID);
+
 
     // ---- Head and snout ----
     const head = new Matrix4(base);
@@ -283,12 +282,6 @@ function renderScene(){
     snout.translate(1.10, 0.01, 0.09);
     snout.scale(0.30, 0.12, 0.22);
     drawCube(snout, CROC_MID);
-
-    // // ---- Upper jaw (fixed) ----
-    // const upperJaw = new Matrix4(base);
-    // upperJaw.translate(1.10, 0.06, 0.09);
-    // upperJaw.scale(0.30, 0.05, 0.22);
-    // drawCube(upperJaw, CROC_LIGHT);
 
     // ---- Lower jaw (animated) ----
     const jawJoint = new Matrix4(base);
@@ -339,7 +332,6 @@ function renderScene(){
         botLeftTooth.render();
     }
 
-
     // Eyes
     const eye1 = new Matrix4(base);
     eye1.translate(1.05, 0.135, 0.07);
@@ -381,7 +373,7 @@ function renderScene(){
         hip.rotate(g_thigh, 0, 0, 1);
 
         const thigh = new Matrix4(hip);
-        thigh.scale(0.10, 0.10, 0.10);
+        thigh.scale(0.105, 0.105, 0.105);
         drawCube(thigh, CROC_DARK);
 
         const knee = new Matrix4(hip);
@@ -412,7 +404,7 @@ function renderScene(){
 
     // check the time at the end of the function, and show on webpage
     var duration = performance.now() - startTime;
-    sendTextToHTML("numdot: " + len + "ms: " + Math.floor(duration) +  " fps: " + Math.floor(10000/duration)/10, "numdot");
+    sendTextToHTML("ms: " + Math.floor(duration) +  " fps: " + Math.floor(10000/duration)/10, "numdot");
 }
 
 // set the text of a HTML element
@@ -470,9 +462,9 @@ function connectVariablesToGLSL(){
         return false;
     }
 
-    u_GlobalRotateMatrix = gl.getUniformLocation(gl.program, 'u_GlobalRotateMatrix');
-    if(!u_GlobalRotateMatrix){
-        console.log('Failed to get the storage location of u_GlobalRotateMatrix');
+    u_GlobalRotation = gl.getUniformLocation(gl.program, 'u_GlobalRotation');
+    if(!u_GlobalRotation){
+        console.log('Failed to get the storage location of u_GlobalRotation');
         return false;
     }
 
@@ -520,11 +512,6 @@ function drawCube(matrix, color) {
 }
 
 function addMouseControl() {
-    canvas.onmousedown = ev => {
-        g_mouseDragging = true;
-        g_lastMouseX = ev.clientX;
-        g_lastMouseY = ev.clientY;
-    };
 
     canvas.onmouseup = canvas.onmouseleave = ev => g_mouseDragging = false;
 
@@ -542,4 +529,37 @@ function addMouseControl() {
 
         renderScene();
     };
+
+    canvas.onmousedown = ev => {
+    if (ev.shiftKey){  // shift-click triggers
+        triggerPokeExplosion();
+        g_mouseDragging = false;
+        return;
+    }
+    g_mouseDragging = true;
+    g_lastMouseX = ev.clientX;
+    g_lastMouseY = ev.clientY;
+    };
+}
+
+function triggerPokeExplosion() {
+  g_pokeActive = true;
+  g_pokeStart = g_seconds;
+  g_money = [];
+
+  // spawn money
+  const spawn = [1.05, 0.15, 0.18];
+  for (let i = 0; i < 80; i++) {
+    const vx = (Math.random() * 2 - 1) * 0.45;
+    const vy = (Math.random() * 2 - 1) * 0.35 + 0.15;
+    const vz = (Math.random() * 2 - 1) * 0.45;
+
+    g_money.push({
+      p: spawn.slice(),
+      v: [vx, vy, vz],
+      r: Math.random() * 360,
+      vr: (Math.random() * 2 - 1) * 360,
+      life: 2.0 + Math.random() * 0.6,
+    });
+  }
 }
