@@ -476,7 +476,7 @@ function drawCube(matrix, color) {
     color = color || [1.0, 0.0, 0.0, 1.0];  // default red
 
     // Pass the color of a point to u_FragColor variable
-    gl.uniform4f(u_FragColor, color[0], color[1], color[2], color[3]);
+    //gl.uniform4f(u_FragColor, color[0], color[1], color[2], color[3]);
     // Send the transformation matrix
     gl.uniformMatrix4fv(u_ModelMatrix, false, matrix.elements);
 
