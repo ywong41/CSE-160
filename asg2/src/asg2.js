@@ -1,6 +1,8 @@
 /**
  * Reference: I asked ChatGPT to model and verify the matrix for the blocky animal.
- * Also, it guides me through functions like addMouseControl() and implement the poke animation.
+ * Also, it guides me through functions like addMouseControl() and the poke animation.
+ * Besides, I used AI to check my modeling logic and verify my math during the transformation.
+ * Overall, code implementation and testing were done by me.
  */
 
 // Vertex shader program
@@ -20,7 +22,7 @@ var FRAGMENT_SHADER = `
         gl_FragColor = u_FragColor;
     }`
 
-// Croc palette (RGBA)
+// Croc RGBA
 const CROC_DARK  = [0.18, 0.259, 0.102, 1.0];
 const CROC_MID   = [0.29, 0.392, 0.176, 1.0];
 const CROC_LIGHT = [0.24, 0.392, 0.176, 1.0];
@@ -29,14 +31,12 @@ const CROC_TOOTH = [0.95, 0.95, 0.95, 1.0];
 const CROC_EYE   = [0.78, 0.76, 0.09, 1.0];;
 const CROC_IRIS   = [0.05, 0.05, 0.05, 1.0];
 
-// Add mouse control to rotate your animal
 // rotation for mouse
-let g_mouseXAngle = 58;  // around Y-axis
-let g_mouseYAngle = -30;  // around X-axis
+let g_mouseXAngle = 58;     // around Y-axis
+let g_mouseYAngle = -30;    // around X-axis
 let g_lastMouseX = 0;
 let g_lastMouseY = 0;
 let g_mouseDragging = false;
-
 
 // global variables
 let canvas;
@@ -48,7 +48,6 @@ let u_GlobalRotation;
 
 // Global variable for UI
 let g_walkAnimation = false;
-
 
 // Crocodile 
 let g_globalAngle = 0;
@@ -63,7 +62,7 @@ let g_thigh = 0;
 let g_calf  = 0;
 let g_foot  = 0;
 
-// Poke / explode animation
+// Poke and explode animation
 let g_pokeActive = false;
 let g_pokeStart = 0;
 let g_prevSeconds = 0;
@@ -71,14 +70,13 @@ const POKE_DURATION = 2.5;
 const EXPLODE_AT = 0.55;
 let g_money = []; 
 
-
 window.onload = function() {
     main();
 };
 
 // Set up action for the HTML UI elements
 function addActionsForHtmlUI(){
-   
+
     // Slider Events
     document.getElementById('angleSlide').addEventListener('input', function() { g_globalAngle = parseFloat(this.value); renderScene(); });
     document.getElementById('tail1Slide').addEventListener('input', function() { g_tail1Angle = parseFloat(this.value); renderScene(); });
@@ -95,7 +93,6 @@ function addActionsForHtmlUI(){
     document.getElementById('jawOffButton').onclick = function() { g_jawAnimation = false; };
     document.getElementById('walkOnButton').onclick  = function() { g_walkAnimation = true; };
     document.getElementById('walkOffButton').onclick = function() { g_walkAnimation = false; };
-
 }
 
 function main() {  
@@ -108,7 +105,7 @@ function main() {
     addMouseControl(); 
 
     // specify the clear color
-    gl.clearColor(0.5, 0.8, 0.5, 1.0);  // a greenish background
+    gl.clearColor(0.5, 0.8, 0.5, 1.0);  // green background
     gl.enable(gl.DEPTH_TEST);
     requestAnimationFrame(tick);
 }
@@ -120,7 +117,7 @@ function tick(){
     g_seconds=performance.now()/1000.0-g_startTime;
 
     // print debug info
-    console.log(g_seconds);
+    //console.log(g_seconds);
     // Update animation angles
     updateAnimationAngles();
     
@@ -271,7 +268,6 @@ function renderScene(){
     tail2.scale(0.24, 0.12, 0.12);
     drawCube(tail2, CROC_MID);
 
-
     // ---- Head and snout ----
     const head = new Matrix4(base);
     head.translate(0.86, 0.02, 0.05);
@@ -285,17 +281,17 @@ function renderScene(){
 
     // ---- Lower jaw (animated) ----
     const jawJoint = new Matrix4(base);
-    jawJoint.translate(1.10, 0.05, 0.20);      // hinge line near back of jaw
+    jawJoint.translate(1.10, 0.05, 0.20);
     jawJoint.rotate(-g_jawAngle, 0, 0, 1);
 
     const lowerJaw = new Matrix4(jawJoint);
-    lowerJaw.translate(0.00, -0.06, -0.11);    // offset so it rotates “down”
+    lowerJaw.translate(0.00, -0.06, -0.11);    //rotates down
     lowerJaw.scale(0.30, 0.05, 0.22);
     drawCube(lowerJaw, CROC_MID);
 
     // Teeth in Pyramid shape
     for (let i = 0; i < 6; i++) {
-        // Upper teeth (fixed to head/base)
+        // Upper right teeth
         const topTooth = new Pyramid();
         topTooth.color = CROC_TOOTH;
         topTooth.parentMatrix = base;
@@ -304,7 +300,7 @@ function renderScene(){
         topTooth.scale = [1.0, -1.0, 1.0];   // flip Y so apex points down
         topTooth.render();
 
-        // upper left
+        // upper left teeth
         const topLeftTooth = new Pyramid();
         topLeftTooth.color = CROC_TOOTH;
         topLeftTooth.parentMatrix = base;
@@ -313,7 +309,7 @@ function renderScene(){
         topLeftTooth.scale = [1.0, -1.0, 1.0];   // flip Y so apex points down
         topLeftTooth.render();
 
-        // Lower teeth (follow the jaw animation)
+        // Lower right teeth (follow the jaw animation)
         const botTooth = new Pyramid();
         botTooth.color = CROC_TOOTH;
         botTooth.parentMatrix = jawJoint;
@@ -322,7 +318,7 @@ function renderScene(){
         botTooth.scale = [1.0, 1.0, 1.0];    // apex points up
         botTooth.render();
 
-        // lower left
+        // lower left teeth
         const botLeftTooth = new Pyramid();
         botLeftTooth.color = CROC_TOOTH;
         botLeftTooth.parentMatrix = jawJoint;

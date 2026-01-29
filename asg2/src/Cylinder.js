@@ -3,11 +3,9 @@ class Cylinder {
     this.type = 'cylinder';
     this.position = [0, 0, 0];
     this.rotation = [0, 0, 0, 1];
-
     this.color = [1, 1, 1, 1];
-
     this.radius = 0.5;
-    this.height = 1.0;     // along +Y in local space
+    this.height = 1.0;  // along +Y in local space
     this.segments = 16;
 
     this.parentMatrix = null;
