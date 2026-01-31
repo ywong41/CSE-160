@@ -2,8 +2,6 @@
  * Reference: I asked ChatGPT to model and verify the matrix for the blocky animal.
  * Also, it guides me through functions like addMouseControl() and the poke animation.
  * Besides, I used AI to check my modeling logic and verify my math during the transformation.
- * Lastly, it helped with my debugging process when I tried to remove redundant code and improve my code's performance.
- * I learned that reducing allocations can achieve smoother FPS.
  * Overall, code implementation and testing were done by me.
  */
 
@@ -24,7 +22,10 @@ var FRAGMENT_SHADER = `
         gl_FragColor = u_FragColor;
     }`
 
+    
+
 // fps
+let g_fpsBuffer = [];
 let g_msBuffer = [];
 // Croc RGBA
 const CROC_DARK  = [0.18, 0.259, 0.102, 1.0];
@@ -32,7 +33,7 @@ const CROC_MID   = [0.29, 0.392, 0.176, 1.0];
 const CROC_LIGHT = [0.24, 0.392, 0.176, 1.0];
 const CROC_BELLY = [0.624, 0.643, 0.396, 1.0];
 const CROC_TOOTH = [0.95, 0.95, 0.95, 1.0];
-const CROC_EYE   = [0.78, 0.76, 0.09, 1.0];;
+const CROC_EYE   = [0.78, 0.76, 0.09, 1.0];
 const CROC_IRIS   = [0.05, 0.05, 0.05, 1.0];
 
 // rotation for mouse
@@ -81,7 +82,6 @@ const POKE_DURATION = 2.5;
 const EXPLODE_AT = 0.55;
 let g_money = []; 
 
-
 window.onload = function() {
     main();
 };
@@ -121,12 +121,12 @@ function main() {
 
     // specify the clear color
     gl.clearColor(0.5, 0.8, 0.5, 1.0);  // green background
-    gl.enable(gl.DEPTH_TEST);
     requestAnimationFrame(tick);
 }
 
 var g_startTime=performance.now()/1000.0;
 var g_seconds=performance.now()/1000.0-g_startTime;
+
 // called by browser repeatly whenever its time
 function tick() {
     const now = performance.now();
@@ -135,37 +135,21 @@ function tick() {
 
     g_seconds = now/1000.0 - g_startTime;
     // Smooth FPS over last 10 frames
-    const MAX_SAMPLES = 10;
-
+    g_fpsBuffer.push(1000 / dt);
     g_msBuffer.push(dt);
-    if (g_msBuffer.length > MAX_SAMPLES) g_msBuffer.shift();
+    if(g_fpsBuffer.length > 10) g_fpsBuffer.shift();
+    if(g_msBuffer.length > 10) g_msBuffer.shift();
 
-    g_msSMA = g_msBuffer.reduce((a,b)=>a+b,0) / g_msBuffer.length;
-    g_fpsSMA = 1000 / g_msSMA;
-
+    g_fpsSMA = g_fpsBuffer.reduce((a,b)=>a+b,0)/g_fpsBuffer.length;
+    g_msSMA  = g_msBuffer.reduce((a,b)=>a+b,0)/g_msBuffer.length;
 
     updateAnimationAngles();
     renderScene();
 
     // Update FPS display
     sendTextToHTML(`FPS: ${g_fpsSMA.toFixed(1)} | ${g_msSMA.toFixed(1)} ms`, "numdot");
+
     requestAnimationFrame(tick);
-}
-
-
-
-var g_shapesList = [];  // contains the list of all shapes that need to be drawn
-
-
-function connectCoordinatesEventToGL(ev){
-    var x = ev.clientX; // x coordinate of a mouse pointer
-    var y = ev.clientY; // y coordinate of a mouse pointer
-    var rect = ev.target.getBoundingClientRect();
-
-    x = ((x - rect.left) - canvas.width/2)/(canvas.width/2);
-    y = (canvas.height/2 - (y - rect.top))/(canvas.height/2);
-
-    return([x,y]);
 }
 
 function updateAnimationAngles(){
@@ -228,15 +212,6 @@ function updateAnimationAngles(){
     }
 }
 
-    // few allocation by moving to global scope
-    const topTooth = new Pyramid();
-    const topLeftTooth = new Pyramid();
-    const botTooth = new Pyramid();
-    const botLeftTooth = new Pyramid();
-
-    const iris1 = new Cylinder();
-    const iris2 = new Cylinder();
-
 // Draw every shape that suppose to be in canvas
 function renderScene(){
 
@@ -249,11 +224,7 @@ function renderScene(){
     // Clear <canvas>
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // -------------------------
-    // Crocodile body blocks
-    // -------------------------
-    
-    // Base pose (move the whole croc here)
+    // Base pose
     const base = new Matrix4();
     base.translate(-0.55, -0.15, 0.0);
 
@@ -266,7 +237,7 @@ function renderScene(){
         bill.scale(0.06, 0.03, 0.002);     // flat bill
         drawCube(bill, [0.10, 0.65, 0.20, 1.0]);
     }
-    return; // hide the croc after explosion by making a early return
+    return; // hide the croc after explosion
     }
 
     // ---- Body ----
@@ -281,9 +252,8 @@ function renderScene(){
     drawCube(belly, CROC_BELLY);
 
     // Back spikes (row of small cubes)
-    const spike = new Matrix4(base);
     for (let i = 0; i < 7; i++) {
-        spike.set(base);
+        const spike = new Matrix4(base);
         spike.translate(0.12 + i * 0.11, 0.20, 0.16);
         spike.scale(0.06, 0.06, 0.10);
         drawCube(spike, CROC_DARK);
@@ -336,6 +306,7 @@ function renderScene(){
     // Teeth in Pyramid shape
     for (let i = 0; i < 6; i++) {
         // Upper right teeth
+        const topTooth = new Pyramid();
         topTooth.color = CROC_TOOTH;
         topTooth.parentMatrix = base;
         topTooth.position = [1.13 + i * 0.04, 0.04, 0.09];
@@ -344,6 +315,7 @@ function renderScene(){
         topTooth.render();
 
         // upper left teeth
+        const topLeftTooth = new Pyramid();
         topLeftTooth.color = CROC_TOOTH;
         topLeftTooth.parentMatrix = base;
         topLeftTooth.position = [1.13 + i * 0.04, 0.04, 0.263];
@@ -352,6 +324,7 @@ function renderScene(){
         topLeftTooth.render();
 
         // Lower right teeth (follow the jaw animation)
+        const botTooth = new Pyramid();
         botTooth.color = CROC_TOOTH;
         botTooth.parentMatrix = jawJoint;
         botTooth.position = [0.03 + i * 0.04, -0.02, -0.1];
@@ -360,6 +333,7 @@ function renderScene(){
         botTooth.render();
 
         // lower left teeth
+        const botLeftTooth = new Pyramid();
         botLeftTooth.color = CROC_TOOTH;
         botLeftTooth.parentMatrix = jawJoint;
         botLeftTooth.position = [0.03 + i * 0.04, -0.02, 0.063];
@@ -379,6 +353,7 @@ function renderScene(){
     eye2.scale(0.1, 0.055, 0.1);
     drawCube(eye2, CROC_EYE);
 
+    const iris1 = new Cylinder();
     iris1.color = CROC_IRIS;
     iris1.parentMatrix = base;
     iris1.position = [1.155, 0.16, 0.13];
@@ -389,6 +364,7 @@ function renderScene(){
     iris1.rotation = [90, 0, 0, 1];   // rotate z axis
     iris1.render();
 
+    const iris2 = new Cylinder();
     iris2.color = CROC_IRIS;
     iris2.parentMatrix = base;
     iris2.position = [1.155, 0.16, 0.293];
@@ -557,8 +533,6 @@ function addMouseControl() {
 
         g_lastMouseX = ev.clientX;
         g_lastMouseY = ev.clientY;
-
-        renderScene();
     };
 
     canvas.onmousedown = ev => {

@@ -50,22 +50,15 @@ function drawTriangle(vertices) {
   gl.drawArrays(gl.TRIANGLES, 0, n);
 }
 
-
-// Global reusable buffers (PERFORMANCE OPTIMIZATION)
-let g_vertexBuffer = null;
-let g_triangleCount = 0;
-
 function drawTriangle3D(vertices) {
 
   var n = 3; // The number of vertices
 
-  // create buffer only once
-  if (!g_vertexBuffer) {
-    g_vertexBuffer = gl.createBuffer();
-    if (!g_vertexBuffer) {
-        console.log('Failed to create the global vertex buffer');
-        return -1;
-    }
+  // Create a buffer object
+  var vertexBuffer = gl.createBuffer();
+  if (!vertexBuffer) {
+    console.log('Failed to create the buffer object');
+    return -1;
   }
 
   // Bind the buffer object to target
