@@ -33,7 +33,7 @@ const CROC_MID   = [0.29, 0.392, 0.176, 1.0];
 const CROC_LIGHT = [0.24, 0.392, 0.176, 1.0];
 const CROC_BELLY = [0.624, 0.643, 0.396, 1.0];
 const CROC_TOOTH = [0.95, 0.95, 0.95, 1.0];
-const CROC_EYE   = [0.78, 0.76, 0.09, 1.0];;
+const CROC_EYE   = [0.78, 0.76, 0.09, 1.0];
 const CROC_IRIS   = [0.05, 0.05, 0.05, 1.0];
 
 // rotation for mouse
@@ -121,12 +121,12 @@ function main() {
 
     // specify the clear color
     gl.clearColor(0.5, 0.8, 0.5, 1.0);  // green background
-    gl.enable(gl.DEPTH_TEST);
     requestAnimationFrame(tick);
 }
 
 var g_startTime=performance.now()/1000.0;
 var g_seconds=performance.now()/1000.0-g_startTime;
+
 // called by browser repeatly whenever its time
 function tick() {
     const now = performance.now();
@@ -150,22 +150,6 @@ function tick() {
     sendTextToHTML(`FPS: ${g_fpsSMA.toFixed(1)} | ${g_msSMA.toFixed(1)} ms`, "numdot");
 
     requestAnimationFrame(tick);
-}
-
-
-
-var g_shapesList = [];  // contains the list of all shapes that need to be drawn
-
-
-function connectCoordinatesEventToGL(ev){
-    var x = ev.clientX; // x coordinate of a mouse pointer
-    var y = ev.clientY; // y coordinate of a mouse pointer
-    var rect = ev.target.getBoundingClientRect();
-
-    x = ((x - rect.left) - canvas.width/2)/(canvas.width/2);
-    y = (canvas.height/2 - (y - rect.top))/(canvas.height/2);
-
-    return([x,y]);
 }
 
 function updateAnimationAngles(){
@@ -240,11 +224,7 @@ function renderScene(){
     // Clear <canvas>
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // -------------------------
-    // Crocodile body blocks
-    // -------------------------
-    
-    // Base pose (move the whole croc here)
+    // Base pose
     const base = new Matrix4();
     base.translate(-0.55, -0.15, 0.0);
 
@@ -553,8 +533,6 @@ function addMouseControl() {
 
         g_lastMouseX = ev.clientX;
         g_lastMouseY = ev.clientY;
-
-        renderScene();
     };
 
     canvas.onmousedown = ev => {
