@@ -22,6 +22,11 @@ var FRAGMENT_SHADER = `
         gl_FragColor = u_FragColor;
     }`
 
+    
+
+// fps
+let g_fpsBuffer = [];
+let g_msBuffer = [];
 // Croc RGBA
 const CROC_DARK  = [0.18, 0.259, 0.102, 1.0];
 const CROC_MID   = [0.29, 0.392, 0.176, 1.0];
@@ -56,6 +61,13 @@ let g_tail2Angle = 10;   // tip
 let g_jawAngle = 0;
 let g_tailAnimation = false;
 let g_jawAnimation = false;
+let gAnimateAll = false;  // controls whether everything animates at once
+
+// fps
+let g_lastFrameMS = performance.now();
+let g_fpsSMA = 0;   // smoothed fps
+let g_msSMA = 0;    // smoothed frame time in ms
+
 
 // 3-level joint
 let g_thigh = 0;
@@ -93,6 +105,9 @@ function addActionsForHtmlUI(){
     document.getElementById('jawOffButton').onclick = function() { g_jawAnimation = false; };
     document.getElementById('walkOnButton').onclick  = function() { g_walkAnimation = true; };
     document.getElementById('walkOffButton').onclick = function() { g_walkAnimation = false; };
+    document.getElementById("animateAllOn").onclick = function() { gAnimateAll = true; };
+    document.getElementById("animateAllOff").onclick = function() { gAnimateAll = false; };
+
 }
 
 function main() {  
@@ -113,19 +128,31 @@ function main() {
 var g_startTime=performance.now()/1000.0;
 var g_seconds=performance.now()/1000.0-g_startTime;
 // called by browser repeatly whenever its time
-function tick(){
-    g_seconds=performance.now()/1000.0-g_startTime;
+function tick() {
+    const now = performance.now();
+    const dt = now - g_lastFrameMS; // ms since last frame
+    g_lastFrameMS = now;
 
-    // print debug info
-    //console.log(g_seconds);
-    // Update animation angles
+    g_seconds = now/1000.0 - g_startTime;
+    // Smooth FPS over last 10 frames
+    g_fpsBuffer.push(1000 / dt);
+    g_msBuffer.push(dt);
+    if(g_fpsBuffer.length > 10) g_fpsBuffer.shift();
+    if(g_msBuffer.length > 10) g_msBuffer.shift();
+
+    g_fpsSMA = g_fpsBuffer.reduce((a,b)=>a+b,0)/g_fpsBuffer.length;
+    g_msSMA  = g_msBuffer.reduce((a,b)=>a+b,0)/g_msBuffer.length;
+
     updateAnimationAngles();
-    
-    // draw everything
     renderScene();
-    // tell browser update again whenever its time
+
+    // Update FPS display
+    sendTextToHTML(`FPS: ${Math.round(g_fpsSMA)} | ${g_msSMA.toFixed(1)}ms`, "numdot");
+
     requestAnimationFrame(tick);
 }
+
+
 
 var g_shapesList = [];  // contains the list of all shapes that need to be drawn
 
@@ -189,13 +216,20 @@ function updateAnimationAngles(){
         g_calf  = 15 * Math.sin(g_seconds * 4 + Math.PI / 2);
         g_foot  = 15 * Math.sin(g_seconds * 4 + Math.PI);
     }
+
+    if (gAnimateAll) {
+        g_tail1Angle = 20 * Math.sin(g_seconds);
+        g_tail2Angle = 35 * Math.sin(g_seconds + Math.PI / 3);
+        g_jawAngle = 36*Math.sin(g_seconds* 3);  // jaw open and close
+        if (g_jawAngle < 0) g_jawAngle = 0; // never close past 0
+        g_thigh = 16 * Math.sin(g_seconds * 4);
+        g_calf  = 15 * Math.sin(g_seconds * 4 + Math.PI / 2);
+        g_foot  = 15 * Math.sin(g_seconds * 4 + Math.PI);
+    }
 }
 
 // Draw every shape that suppose to be in canvas
 function renderScene(){
-
-    // check the time at the start of this function
-    var startTime =  performance.now();
 
     // Global rotation
     var globalRotMat = new Matrix4();
@@ -362,7 +396,8 @@ function renderScene(){
     iris2.render();
 
 
-    // 4 Legs
+    // 4 Legs hierarchy
+    // three-level joint (motion hierarchy: thigh → calf → foot)
     function drawLeg(x, y, z, sideSign){
         const hip = new Matrix4(base);
         hip.translate(x, y, z);
@@ -397,10 +432,6 @@ function renderScene(){
     // Back pair
     drawLeg(0.18, -0.02, 0.06, +1);
     drawLeg(0.18, -0.02, 0.28, -1);
-
-    // check the time at the end of the function, and show on webpage
-    var duration = performance.now() - startTime;
-    sendTextToHTML("ms: " + Math.floor(duration) +  " fps: " + Math.floor(10000/duration)/10, "numdot");
 }
 
 // set the text of a HTML element
