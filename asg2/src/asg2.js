@@ -2,6 +2,8 @@
  * Reference: I asked ChatGPT to model and verify the matrix for the blocky animal.
  * Also, it guides me through functions like addMouseControl() and the poke animation.
  * Besides, I used AI to check my modeling logic and verify my math during the transformation.
+ * Lastly, it helped with my debugging process when I tried to remove redundant code and improve my code's performance.
+ * I learned that reducing allocations can achieve smoother FPS.
  * Overall, code implementation and testing were done by me.
  */
 
@@ -22,10 +24,7 @@ var FRAGMENT_SHADER = `
         gl_FragColor = u_FragColor;
     }`
 
-    
-
 // fps
-let g_fpsBuffer = [];
 let g_msBuffer = [];
 // Croc RGBA
 const CROC_DARK  = [0.18, 0.259, 0.102, 1.0];
@@ -82,6 +81,7 @@ const POKE_DURATION = 2.5;
 const EXPLODE_AT = 0.55;
 let g_money = []; 
 
+
 window.onload = function() {
     main();
 };
@@ -135,20 +135,20 @@ function tick() {
 
     g_seconds = now/1000.0 - g_startTime;
     // Smooth FPS over last 10 frames
-    g_fpsBuffer.push(1000 / dt);
-    g_msBuffer.push(dt);
-    if(g_fpsBuffer.length > 10) g_fpsBuffer.shift();
-    if(g_msBuffer.length > 10) g_msBuffer.shift();
+    const MAX_SAMPLES = 10;
 
-    g_fpsSMA = g_fpsBuffer.reduce((a,b)=>a+b,0)/g_fpsBuffer.length;
-    g_msSMA  = g_msBuffer.reduce((a,b)=>a+b,0)/g_msBuffer.length;
+    g_msBuffer.push(dt);
+    if (g_msBuffer.length > MAX_SAMPLES) g_msBuffer.shift();
+
+    g_msSMA = g_msBuffer.reduce((a,b)=>a+b,0) / g_msBuffer.length;
+    g_fpsSMA = 1000 / g_msSMA;
+
 
     updateAnimationAngles();
     renderScene();
 
     // Update FPS display
     sendTextToHTML(`FPS: ${g_fpsSMA.toFixed(1)} | ${g_msSMA.toFixed(1)} ms`, "numdot");
-
     requestAnimationFrame(tick);
 }
 
@@ -212,6 +212,15 @@ function updateAnimationAngles(){
     }
 }
 
+    // few allocation by moving to global scope
+    const topTooth = new Pyramid();
+    const topLeftTooth = new Pyramid();
+    const botTooth = new Pyramid();
+    const botLeftTooth = new Pyramid();
+
+    const iris1 = new Cylinder();
+    const iris2 = new Cylinder();
+
 // Draw every shape that suppose to be in canvas
 function renderScene(){
 
@@ -237,7 +246,7 @@ function renderScene(){
         bill.scale(0.06, 0.03, 0.002);     // flat bill
         drawCube(bill, [0.10, 0.65, 0.20, 1.0]);
     }
-    return; // hide the croc after explosion
+    return; // hide the croc after explosion by making a early return
     }
 
     // ---- Body ----
@@ -252,8 +261,9 @@ function renderScene(){
     drawCube(belly, CROC_BELLY);
 
     // Back spikes (row of small cubes)
+    const spike = new Matrix4(base);
     for (let i = 0; i < 7; i++) {
-        const spike = new Matrix4(base);
+        spike.set(base);
         spike.translate(0.12 + i * 0.11, 0.20, 0.16);
         spike.scale(0.06, 0.06, 0.10);
         drawCube(spike, CROC_DARK);
@@ -306,7 +316,6 @@ function renderScene(){
     // Teeth in Pyramid shape
     for (let i = 0; i < 6; i++) {
         // Upper right teeth
-        const topTooth = new Pyramid();
         topTooth.color = CROC_TOOTH;
         topTooth.parentMatrix = base;
         topTooth.position = [1.13 + i * 0.04, 0.04, 0.09];
@@ -315,7 +324,6 @@ function renderScene(){
         topTooth.render();
 
         // upper left teeth
-        const topLeftTooth = new Pyramid();
         topLeftTooth.color = CROC_TOOTH;
         topLeftTooth.parentMatrix = base;
         topLeftTooth.position = [1.13 + i * 0.04, 0.04, 0.263];
@@ -324,7 +332,6 @@ function renderScene(){
         topLeftTooth.render();
 
         // Lower right teeth (follow the jaw animation)
-        const botTooth = new Pyramid();
         botTooth.color = CROC_TOOTH;
         botTooth.parentMatrix = jawJoint;
         botTooth.position = [0.03 + i * 0.04, -0.02, -0.1];
@@ -333,7 +340,6 @@ function renderScene(){
         botTooth.render();
 
         // lower left teeth
-        const botLeftTooth = new Pyramid();
         botLeftTooth.color = CROC_TOOTH;
         botLeftTooth.parentMatrix = jawJoint;
         botLeftTooth.position = [0.03 + i * 0.04, -0.02, 0.063];
@@ -353,7 +359,6 @@ function renderScene(){
     eye2.scale(0.1, 0.055, 0.1);
     drawCube(eye2, CROC_EYE);
 
-    const iris1 = new Cylinder();
     iris1.color = CROC_IRIS;
     iris1.parentMatrix = base;
     iris1.position = [1.155, 0.16, 0.13];
@@ -364,7 +369,6 @@ function renderScene(){
     iris1.rotation = [90, 0, 0, 1];   // rotate z axis
     iris1.render();
 
-    const iris2 = new Cylinder();
     iris2.color = CROC_IRIS;
     iris2.parentMatrix = base;
     iris2.position = [1.155, 0.16, 0.293];
