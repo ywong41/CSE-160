@@ -147,7 +147,7 @@ function tick() {
     renderScene();
 
     // Update FPS display
-    sendTextToHTML(`FPS: ${Math.round(g_fpsSMA)} | ${g_msSMA.toFixed(1)}ms`, "numdot");
+    sendTextToHTML(`FPS: ${g_fpsSMA.toFixed(1)} | ${g_msSMA.toFixed(1)} ms`, "numdot");
 
     requestAnimationFrame(tick);
 }
