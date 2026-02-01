@@ -127,6 +127,7 @@ function main() {
 var g_startTime=performance.now()/1000.0;
 var g_seconds=performance.now()/1000.0-g_startTime;
 
+// tick(): updates global time (g_seconds) and drives all animations
 // called by browser repeatly whenever its time
 function tick() {
     const now = performance.now();
@@ -242,6 +243,7 @@ function renderScene(){
 
     // ---- Body ----
     const body = new Matrix4(base);
+    body.rotate(0.6 * Math.sin(g_seconds), 0, 1, 0);
     body.scale(0.90, 0.22, 0.40);
     drawCube(body, CROC_MID);
 
