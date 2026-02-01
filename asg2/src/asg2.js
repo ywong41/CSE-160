@@ -388,27 +388,27 @@ function renderScene(){
     eye2.scale(0.1, 0.055, 0.1);
     drawCube(eye2, CROC_EYE);
 
-    const iris1 = new Cylinder();
-    iris1.color = CROC_IRIS;
-    iris1.parentMatrix = base;
-    iris1.position = [1.155, 0.16, 0.13];
-    iris1.radius = 0.03;
-    iris1.height = 0.03;
-    iris1.segments = 20;
-    iris1.scale = [0.87,0.87,0.87];
-    iris1.rotation = [90, 0, 0, 1];   // rotate z axis
-    iris1.render();
+    const irisCyl1 = new Cylinder();
+    irisCyl1.color = CROC_IRIS;
+    irisCyl1.parentMatrix = base;
+    irisCyl1.position = [1.155, 0.16, 0.13];
+    irisCyl1.radius = 0.03;
+    irisCyl1.height = 0.03;
+    irisCyl1.segments = 20;
+    irisCyl1.scale = [0.87,0.87,0.87];
+    irisCyl1.rotation = [90, 0, 0, 1];   // rotate z axis
+    irisCyl1.render();
 
-    const iris2 = new Cylinder();
-    iris2.color = CROC_IRIS;
-    iris2.parentMatrix = base;
-    iris2.position = [1.155, 0.16, 0.293];
-    iris2.radius = 0.03;
-    iris2.height = 0.03;
-    iris2.segments = 20;
-    iris2.scale = [0.87,0.87,0.87];
-    iris2.rotation = [90, 0, 0, 1];   // rotate z axis
-    iris2.render();
+    const irisCyl2  = new Cylinder();
+    irisCyl2 .color = CROC_IRIS;
+    irisCyl2 .parentMatrix = base;
+    irisCyl2 .position = [1.155, 0.16, 0.293];
+    irisCyl2 .radius = 0.03;
+    irisCyl2 .height = 0.03;
+    irisCyl2 .segments = 20;
+    irisCyl2 .scale = [0.87,0.87,0.87];
+    irisCyl2 .rotation = [90, 0, 0, 1];   // rotate z axis
+    irisCyl2 .render();
 
     // Legs hierarchy
     // three-level joint (motion hierarchy: thigh → calf → foot)
