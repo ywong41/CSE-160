@@ -2,6 +2,8 @@
  * Reference: I asked ChatGPT to model and verify the matrix for the blocky animal.
  * Also, it guides me through functions like addMouseControl() and the poke animation.
  * Besides, I used AI to check my modeling logic and verify my math during the transformation.
+ * I learned that I increase my code performance by limiting per-frame allocations for the animation.
+ * for example, I resue global matrix and color constant.
  * Overall, code implementation and testing were done by me.
  */
 
@@ -21,8 +23,6 @@ var FRAGMENT_SHADER = `
     void main() {
         gl_FragColor = u_FragColor;
     }`
-
-    
 
 // fps
 let g_fpsBuffer = [];
@@ -82,7 +82,41 @@ const POKE_DURATION = 2.5;
 const EXPLODE_AT = 0.55;
 let g_money = []; 
 
+// Global matrices (reuse to avoid per-frame allocation)
+let base, body, belly;
+let tailJoint1, tail1, tailJoint2, tail2;
+let head, snout, jawJoint, lowerJaw;
+let eye1, eye2, iris1, iris2;
+let hip, thigh, knee, calf, ankle, foot;
+
+function initGlobalMatrices() {
+    base = new Matrix4();
+    body = new Matrix4();
+    belly = new Matrix4();
+    tailJoint1 = new Matrix4();
+    tail1 = new Matrix4();
+    tailJoint2 = new Matrix4();
+    tail2 = new Matrix4();
+    head = new Matrix4();
+    snout = new Matrix4();
+    jawJoint = new Matrix4();
+    lowerJaw = new Matrix4();
+    eye1 = new Matrix4();
+    eye2 = new Matrix4();
+    iris1 = new Matrix4();
+    iris2 = new Matrix4();
+    hip = new Matrix4();
+    thigh = new Matrix4();
+    knee = new Matrix4();
+    calf = new Matrix4();
+    ankle = new Matrix4();
+    foot = new Matrix4();
+}
+
+
+
 window.onload = function() {
+    initGlobalMatrices();
     main();
 };
 
@@ -107,7 +141,6 @@ function addActionsForHtmlUI(){
     document.getElementById('walkOffButton').onclick = function() { g_walkAnimation = false; };
     document.getElementById("animateAllOn").onclick = function() { gAnimateAll = true; };
     document.getElementById("animateAllOff").onclick = function() { gAnimateAll = false; };
-
 }
 
 function main() {  
@@ -226,7 +259,7 @@ function renderScene(){
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Base pose
-    const base = new Matrix4();
+    base.setIdentity();
     base.translate(-0.55, -0.15, 0.0);
 
     // poke animation: explode and money burst
@@ -242,13 +275,13 @@ function renderScene(){
     }
 
     // ---- Body ----
-    const body = new Matrix4(base);
+    body.set(base);
     body.rotate(0.6 * Math.sin(g_seconds), 0, 1, 0);
     body.scale(0.90, 0.22, 0.40);
     drawCube(body, CROC_MID);
 
-    // Belly slab (slightly inset + lighter)
-    const belly = new Matrix4(base);
+    // Belly slab
+    belly.set(base);
     belly.translate(0.03, -0.01, 0.03);
     belly.scale(0.84, 0.12, 0.34);
     drawCube(belly, CROC_BELLY);
@@ -262,45 +295,45 @@ function renderScene(){
     }
 
     // ---- Tail (with animation) ----
-    // Tail joint 1 (attached to body)
-    const tailJoint1 = new Matrix4(base);
+    // Tail joint 1
+    tailJoint1.set(base);
     tailJoint1.translate(0.00, 0.10, 0.20);
     tailJoint1.rotate(-g_tail1Angle, 0, 1, 0);
 
     // Tail part 1
-    const tail1 = new Matrix4(tailJoint1);
+    tail1.set(tailJoint1);
     tail1.translate(-0.30, -0.06, -0.08);
     tail1.scale(0.30, 0.14, 0.16);
     drawCube(tail1, CROC_DARK);
 
     // Tail joint 2 (at end of tail part 1)
-    const tailJoint2 = new Matrix4(tailJoint1);
+    tailJoint2.set(tailJoint1);
     tailJoint2.translate(-0.30, 0.00, 0.00);
     tailJoint2.rotate(-g_tail2Angle, 0, 1, 0);
 
     // Tail part 2 (tip)
-    const tail2 = new Matrix4(tailJoint2);
+    tail2.set(tailJoint2);
     tail2.translate(-0.24, -0.05, -0.06);
     tail2.scale(0.24, 0.12, 0.12);
     drawCube(tail2, CROC_MID);
 
     // ---- Head and snout ----
-    const head = new Matrix4(base);
+    head.set(base);
     head.translate(0.86, 0.02, 0.05);
     head.scale(0.26, 0.20, 0.30);
     drawCube(head, CROC_LIGHT);
 
-    const snout = new Matrix4(base);
+    snout.set(base);
     snout.translate(1.10, 0.01, 0.09);
     snout.scale(0.30, 0.12, 0.22);
     drawCube(snout, CROC_MID);
 
     // ---- Lower jaw (animated) ----
-    const jawJoint = new Matrix4(base);
+    jawJoint.set(base);
     jawJoint.translate(1.10, 0.05, 0.20);
     jawJoint.rotate(-g_jawAngle, 0, 0, 1);
 
-    const lowerJaw = new Matrix4(jawJoint);
+    lowerJaw.set(jawJoint);
     lowerJaw.translate(0.00, -0.06, -0.11);    //rotates down
     lowerJaw.scale(0.30, 0.05, 0.22);
     drawCube(lowerJaw, CROC_MID);
@@ -345,12 +378,12 @@ function renderScene(){
     }
 
     // Eyes
-    const eye1 = new Matrix4(base);
+    eye1.set(base);
     eye1.translate(1.05, 0.135, 0.07);
     eye1.scale(0.1, 0.055, 0.1);
     drawCube(eye1, CROC_EYE);
 
-    const eye2 = new Matrix4(base);
+    eye2.set(base);
     eye2.translate(1.05, 0.135, 0.24);
     eye2.scale(0.1, 0.055, 0.1);
     drawCube(eye2, CROC_EYE);
@@ -377,35 +410,35 @@ function renderScene(){
     iris2.rotation = [90, 0, 0, 1];   // rotate z axis
     iris2.render();
 
-
-    // 4 Legs hierarchy
+    // Legs hierarchy
     // three-level joint (motion hierarchy: thigh → calf → foot)
     function drawLeg(x, y, z, sideSign){
-        const hip = new Matrix4(base);
+        hip.set(base);
         hip.translate(x, y, z);
         hip.rotate(g_thigh, 0, 0, 1);
 
-        const thigh = new Matrix4(hip);
+        thigh.set(hip);
         thigh.scale(0.105, 0.105, 0.105);
         drawCube(thigh, CROC_DARK);
 
-        const knee = new Matrix4(hip);
+        knee.set(hip);
         knee.translate(0.06, -0.08, 0.0);
         knee.rotate(g_calf, 0, 0, 1);
 
-        const calf = new Matrix4(knee);
+        calf.set(knee);
         calf.scale(0.08, 0.10, 0.08);
         drawCube(calf, CROC_DARK);
 
-        const ankle = new Matrix4(knee);
+        ankle.set(knee);
         ankle.translate(0.05, -0.05, -0.05);
         ankle.rotate(g_foot, 0, 0, 1);
 
-        const foot = new Matrix4(ankle);
+        foot.set(ankle);
         foot.translate(-0.01, 0.04, -0.05 * sideSign);
         foot.scale(0.14, 0.04, 0.16);
         drawCube(foot, CROC_DARK);
     }
+
 
     // Front pair
     drawLeg(0.62, -0.02, 0.06, +1);
