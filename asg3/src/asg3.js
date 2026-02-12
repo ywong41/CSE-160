@@ -25,10 +25,17 @@ var FRAGMENT_SHADER = `
     varying vec2 v_UV;
     uniform vec4 u_FragColor;
     uniform sampler2D u_Sampler0;
+    unifrom int u_whichTexture;
     void main() {
-        gl_FragColor = u_FragColor;
-        gl_FragColor = vec4(v_UV, 1.0, 1.0);
-        gl_FragColor = texture2D(u_Sampler0, v_UV);
+        if(u_whichTexture == -2){
+            gl_FragColor = u_FragColor;                 // use color
+        }else if(u_whichTexturer == -1){                // use UV debug color
+            gl_FragColor = vec4(v_UV, 1.0, 1.0);
+        }else if(u_whichTexture == 0){                  // use texture0
+            gl_FragColor = texture2D(u_Sampler0, v_UV);
+        }else{                                          // error, put Redish
+            gl_FragColor = vec4(1, .2, .2, 1);
+        }
     }`
 
 // fps
@@ -132,18 +139,13 @@ window.onload = function() {
 };
 
 function initTextures(gl, n){
-    var texture = gl.createTexture();
-    if(!texture){
-        console.log("Failed to create the texture object");
-        return false;
-    }
 
-    // get the storage location of u_Sampler
-    var_uSampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
-        if(!u_Sampler0){
-            console.log("Failed to the the storage location of u_Sampler0");
-            return false;
-        }
+    // // get the storage location of u_Sampler
+    // var_uSampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
+    //     if(!u_Sampler0){
+    //         console.log("Failed to the the storage location of u_Sampler0");
+    //         return false;
+    //     }
 
     var image = new Image();
     if(!image){
@@ -151,12 +153,20 @@ function initTextures(gl, n){
         return false;
     }
 
-    image.onload = function(){ loadTexture(gl, n, texture, u_Sampler0, image);}
+    image.onload = function(){ sendImageToTexture0(image);}
+    // tell the browser to load an image
     image.src = "sky.jpg";
     return true;
     }
 
-function loadTexture(gl, n, texture, u_Sampler, image){
+function sendImageToTexture0(image){
+    // create texture obj
+    var texture = gl.createTexture();
+    if(!texture){
+        console.log("Failed to create the texture object");
+        return false;
+    }
+
     gl.pixelStore(gl.UNPACK_FLIP_Y_WEBGL, 1);   // flip image's y axis
 
     //enable texture unit0
@@ -174,6 +184,7 @@ function loadTexture(gl, n, texture, u_Sampler, image){
 
     console.log("finished loadTexture");
 }   
+
 
 // Set up action for the HTML UI elements
 function addActionsForHtmlUI(){
@@ -303,17 +314,32 @@ function updateAnimationAngles(){
     }
 }
 
+var g_eye = [0,0,3];
+var g_at = [0,0,-100];
+var g_up = [0,1,0];
+
 // Draw every shape that suppose to be in canvas
 function renderScene(){
 
     // Global rotation
     var globalRotMat = new Matrix4();
+   
+    // pass the view matrix
+    var projMat = new Matrix4();
+    projMat.setPerspective(50, 1*canvas.width/canvas.height, 1, 100);
+    gl.uniformMatrix4v(u_ViewMatrixl, false, projMat.elements);
+
+    var viewMat = new Matrix4();
+    viewMat.setLookAt(0,0,-1, 0,0,0, 0,1,0);    //(eye, at, up)
+    gl.uniformMatrix4fv (u_ViewMatrix1, false, viewMat.elements);
+    // Clear <canvas>
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+
     globalRotMat.rotate(g_mouseYAngle, 1, 0, 0);   
     globalRotMat.rotate(g_mouseXAngle + g_globalAngle, 0, 1, 0);
     gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
 
-    // Clear <canvas>
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Base pose
     base.setIdentity();
@@ -334,6 +360,7 @@ function renderScene(){
     // ---- Body ----
     body.set(base);
     body.rotate(0.6 * Math.sin(g_seconds), 0, 1, 0);
+    body.textureNum = 0;
     body.scale(0.90, 0.22, 0.40);
     drawCube(body, CROC_MID);
 
@@ -361,6 +388,7 @@ function renderScene(){
     tail1.set(tailJoint1);
     tail1.translate(-0.30, -0.06, -0.08);
     tail1.scale(0.30, 0.14, 0.16);
+    tail1.textureNum = 2;
     drawCube(tail1, CROC_DARK);
 
     // Tail joint 2 (at end of tail part 1)
@@ -598,6 +626,8 @@ function connectVariablesToGLSL(){
 
 function drawCube(matrix, color) {
     color = color || [1.0, 0.0, 0.0, 1.0];  // default red
+    this.matrix - new Matrix4();
+    this.textureNum = 0;
 
     // Pass the color of a point to u_FragColor variable
     //gl.uniform4f(u_FragColor, color[0], color[1], color[2], color[3]);
