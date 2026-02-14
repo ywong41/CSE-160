@@ -37,6 +37,9 @@ var FRAGMENT_SHADER = `
             gl_FragColor = vec4(1, .2, .2, 1);
         }
     }`
+// blocky world
+let world = [];
+let triangle1 = new Triangle();
 
 // fps
 let g_fpsBuffer = [];
@@ -210,20 +213,28 @@ function addActionsForHtmlUI(){
 }
 
 function main() {  
+    // set up canvas and GL variables
     setupWebGL();
     // set up GLSL shader program and connect to GLSL variables
     connectVariablesToGLSL();
     // Set up action for the HTML UI elements
     addActionsForHtmlUI();
 
+    document.onkeydown = keydown;
+
+
     initTextures(gl, 0);
 
     addMouseControl(); 
 
-    // specify the clear color
+    // specify the color for clearing canvas
     gl.clearColor(0.5, 0.8, 0.5, 1.0);  // green background
+
     requestAnimationFrame(tick);
 }
+
+
+
 
 var g_startTime=performance.now()/1000.0;
 var g_seconds=performance.now()/1000.0-g_startTime;
@@ -312,6 +323,18 @@ function updateAnimationAngles(){
         g_calf  = 15 * Math.sin(g_seconds * 4 + Math.PI / 2);
         g_foot  = 15 * Math.sin(g_seconds * 4 + Math.PI);
     }
+}
+
+// update eye position
+function keydown(ev){
+    if(ev.keyCode == 39){   // right arrow
+        g_eye[0] += 0.2;
+    }else if(ev.keyCode == 37){ // left arrow
+        g_eye[0] -= 0.2;
+    }
+
+    renderAllShapes();
+    console.log(ev.keyCode);
 }
 
 var g_eye = [0,0,3];
