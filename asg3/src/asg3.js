@@ -193,13 +193,13 @@ function sendImageToTexture0(image){
 function addActionsForHtmlUI(){
 
     // Slider Events
-    document.getElementById('angleSlide').addEventListener('input', function() { g_globalAngle = parseFloat(this.value); renderScene(); });
-    document.getElementById('tail1Slide').addEventListener('input', function() { g_tail1Angle = parseFloat(this.value); renderScene(); });
-    document.getElementById('tail2Slide').addEventListener('input', function() { g_tail2Angle = parseFloat(this.value); renderScene(); });
-    document.getElementById('jawSlide').addEventListener('input', function() { g_jawAngle = parseFloat(this.value); renderScene(); });
-    document.getElementById('thighSlide').addEventListener('input', function () { g_thigh = parseFloat(this.value); renderScene(); });
-    document.getElementById('calfSlide').addEventListener('input', function () { g_calf = parseFloat(this.value); renderScene(); });
-    document.getElementById('footSlide').addEventListener('input', function () { g_foot = parseFloat(this.value); renderScene(); });
+    document.getElementById('angleSlide').addEventListener('input', function() { g_globalAngle = parseFloat(this.value); renderAllShapes(); });
+    document.getElementById('tail1Slide').addEventListener('input', function() { g_tail1Angle = parseFloat(this.value); renderAllShapes(); });
+    document.getElementById('tail2Slide').addEventListener('input', function() { g_tail2Angle = parseFloat(this.value); renderAllShapes(); });
+    document.getElementById('jawSlide').addEventListener('input', function() { g_jawAngle = parseFloat(this.value); renderAllShapes(); });
+    document.getElementById('thighSlide').addEventListener('input', function () { g_thigh = parseFloat(this.value); renderAllShapes(); });
+    document.getElementById('calfSlide').addEventListener('input', function () { g_calf = parseFloat(this.value); renderAllShapes(); });
+    document.getElementById('footSlide').addEventListener('input', function () { g_foot = parseFloat(this.value); renderAllShapes(); });
 
     // Button Events
     document.getElementById('tailOnButton').onclick = function() { g_tailAnimation  = true; };
@@ -257,7 +257,7 @@ function tick() {
     g_msSMA  = g_msBuffer.reduce((a,b)=>a+b,0)/g_msBuffer.length;
 
     updateAnimationAngles();
-    renderScene();
+    renderAllShapes();
 
     // Update FPS display
     sendTextToHTML(`FPS: ${g_fpsSMA.toFixed(1)} | ${g_msSMA.toFixed(1)} ms`, "numdot");
@@ -342,27 +342,39 @@ var g_at = [0,0,-100];
 var g_up = [0,1,0];
 
 // Draw every shape that suppose to be in canvas
-function renderScene(){
-
-    // Global rotation
-    var globalRotMat = new Matrix4();
+function renderAllShapes(){
    
     // pass the view matrix
     var projMat = new Matrix4();
     projMat.setPerspective(50, 1*canvas.width/canvas.height, 1, 100);
     gl.uniformMatrix4v(u_ViewMatrixl, false, projMat.elements);
 
+    //(eye, at, up)
     var viewMat = new Matrix4();
-    viewMat.setLookAt(0,0,-1, 0,0,0, 0,1,0);    //(eye, at, up)
+    viewMat.setLookAt(
+        g_camera.eye.x, g_camera.eye.y, g_camera.eye.z,
+        g_camera.at.x, g_camera.at.y, g_camera.at.z,
+        g_camera.up.x, g_camera.up.y, g_camera.up.z);    
     gl.uniformMatrix4fv (u_ViewMatrix1, false, viewMat.elements);
-    // Clear <canvas>
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-
+    // Global rotation
+    var globalRotMat = new Matrix4();
     globalRotMat.rotate(g_mouseYAngle, 1, 0, 0);   
     globalRotMat.rotate(g_mouseXAngle + g_globalAngle, 0, 1, 0);
     gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
 
+    // Clear <canvas>
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // Draw the floor
+    var floor = new Cube();
+    floor.color = [1.0, 0.0, 0.0, 1.0];
+    floor.textureNum = 0;
+    floor.matrix.translate(0, -0.75, 0.0);
+    floor.matrix.scale(10, 0, 10);
+    floor.matrix.translate(-.5, 0, -0.5);
+    body.render();
 
     // Base pose
     base.setIdentity();
