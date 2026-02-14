@@ -376,6 +376,14 @@ function renderAllShapes(){
     floor.matrix.translate(-.5, 0, -0.5);
     body.render();
 
+    // Draw the sky
+    var sky = new Cube();
+    sky.color = [1.0, 0.0, 0.0, 1.0];
+    sky.textureNum = 1;
+    sky.matrix.scale(50, 50, 50);
+    sky.matrix.translate(-.5, 0, -0.5);
+    sky.render();
+
     // Base pose
     base.setIdentity();
     base.translate(-0.55, -0.15, 0.0);
