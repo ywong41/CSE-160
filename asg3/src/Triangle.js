@@ -40,8 +40,8 @@ class Triangle3D {
     this.color = [1, 1, 1, 1];
     this.matrix = new Matrix4();
     this.textureNum = -2;
-    this.verts = [0,0,0,  1,0,0,  0,1,0];
-    this.uvs   = [0,0,    1,0,    0,1];
+    this.verts = [0, 0, 0, 1, 0, 0, 0, 1, 0];
+    this.uvs = [0, 0, 1, 0, 0, 1];
   }
 
   render() {
