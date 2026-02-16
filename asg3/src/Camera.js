@@ -192,7 +192,7 @@ class Camera {
     }
 
     mouseLook(dxPixels, dyPixels) {
-        const SENS = 0.023; // degrees per pixel (tune)
+        const SENS = 0.05; // degrees per pixel (tune)
         this._yaw(-dxPixels * SENS);     // left/right
         this._pitch(-dyPixels * SENS);   // up/down
     }
