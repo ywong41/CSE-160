@@ -490,8 +490,6 @@ function renderAllShapes() {
 function drawMap() {
     const half = MAP_SIZE / 2;
 
-    // cache uniforms so you don't spam the GPU
-    let lastTexNum = null;
     let lastWeight = null;
     let lastColorKey = "";
 
@@ -798,7 +796,6 @@ function drawDiamonds() {
     }
 }
 
-
 // distance helper
 function distTo(x, y, z, p) {
     return Math.hypot(x - p[0], y - p[1], z - p[2]);
@@ -810,7 +807,6 @@ function sendTextToHTML(text, htmlID) {
     if (!htmlElm) return;
     htmlElm.innerHTML = text;
 }
-
 
 // simple minecraft
 function getFrontCell(reach = 1.7) {
@@ -1467,7 +1463,6 @@ function updateBrushHud() {
 
     el.textContent = `Brush: ${g_placeBrush} (${name})  |  click keyboard 1/2/3 to select`;
 }
-
 
 function initBrushSelect() {
     const s = document.getElementById("brushSelect");

@@ -41,7 +41,7 @@
     });
 })();
 
-// cross product helper (spec needs up x f / f x up)
+// cross product helper
 function v3Cross(a, b) {
     return new Vector3([
         a.elements[1] * b.elements[2] - a.elements[2] * b.elements[1],
@@ -139,7 +139,6 @@ class Camera {
         this.tryMove(s.elements[0], s.elements[2]);
     }
 
-
     // panLeft / panRight
     panLeft() { this._yaw(+this.alpha); }
     panRight() { this._yaw(-this.alpha); }
@@ -192,7 +191,6 @@ class Camera {
         this.updateViewMatrix();
     }
 
-
     mouseLook(dxPixels, dyPixels) {
         const SENS = 0.023; // degrees per pixel (tune)
         this._yaw(-dxPixels * SENS);     // left/right
@@ -218,12 +216,12 @@ class Camera {
             this.updateViewMatrix();
             return;
         }
-
         // sliding along walls
         if (canStandAt(nx, ez)) {
             this.eye.elements[0] = nx;
             this.at.elements[0] += dx;
         }
+
         if (canStandAt(ex, nz)) {
             this.eye.elements[2] = nz;
             this.at.elements[2] += dz;
