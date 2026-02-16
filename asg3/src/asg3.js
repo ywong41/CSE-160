@@ -29,8 +29,7 @@ void main() {
   v_WorldPos = worldPos.xyz;
 
   gl_Position = u_ProjectionMatrix * u_ViewMatrix * worldPos;
-}
-`;
+}`
 
 
 var FRAGMENT_SHADER = `
@@ -88,7 +87,7 @@ void main() {
     outColor = vec4(1.0, 0.2, 0.2, 1.0);
   }
 
-  // ---- FOG ----
+  // FOG distance based
   if (u_useFog == 1) {
     float d = distance(u_CameraPos, v_WorldPos);
     float fogT = clamp((d - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
@@ -96,24 +95,27 @@ void main() {
   }
 
   gl_FragColor = outColor;
-}
-`;
+}`
 
-// ========== Globals ==========
+// Globals
 let canvas, gl;
 
+// Attributes
 let a_Position, a_UV;
-let u_FragColor, u_ModelMatrix, u_ViewMatrix, u_ProjectionMatrix, u_GlobalRotateMatrix;
+
+// Uniforms
+let u_FragColor, u_ModelMatrix, u_ViewMatrix, u_ProjectionMatrix, u_GlobalRotateMatrix, u_texColorWeight;
+
 let u_whichTexture, u_Sampler0;
 let u_Sampler1, u_Sampler2, u_Sampler3, u_Sampler4;
-let g_texture1 = null;
-let g_texture2 = null;
-let g_texture3 = null;
-let g_texture4 = null;
 
+// Textures (stone, sky, diamond, wood, purple diamond)
+let g_texture0 = null, g_texture1 = null, g_texture2 = null, g_texture3 = null, g_texture4 = null;
 
-let u_texColorWeight;
+// fog globals
+let u_CameraPos, u_FogColor, u_FogNear, u_FogFar, u_useFog;
 
+// Camera
 let g_camera;
 
 let g_globalAngle = 0;
@@ -134,18 +136,9 @@ let g_msBuffer = [];
 let g_fpsSMA = 0;
 let g_msSMA = 0;
 
-// Texture
-let g_texture0 = null;
-
 // Map
 const MAP_SIZE = 32;
 let g_map = [];
-
-
-
-// atmosphere(fog)
-let u_CameraPos, u_FogColor, u_FogNear, u_FogFar, u_useFog;
-
 
 // ==== Collision constants ====
 const PLAYER_RADIUS = 0.18;
@@ -158,14 +151,14 @@ function worldToCell(wx, wz) {
     return { x: mx, z: mz };
 }
 
-// "air wall": outside map = blocked
+// add air wall to block outside map
 function isBlockedAtXZ(wx, wz) {
     const c = worldToCell(wx, wz);
     if (c.x < 0 || c.x >= MAP_SIZE || c.z < 0 || c.z >= MAP_SIZE) return true;
     return g_map[c.z][c.x] > 0; // any column > 0 blocks
 }
 
-// check 4 corners of a player circle (cheap + works well)
+// check 4 corners of a player circle that can stand at
 function canStandAt(wx, wz) {
     const r = PLAYER_RADIUS;
     return !(
@@ -179,15 +172,15 @@ function canStandAt(wx, wz) {
 // reuse cube for map rendering
 let g_tempCube = null;
 
-// ===== Block Selection =====
+// Block Selection
 let g_placeBrush = 1;   // block selection: 1/2/3
-// type values: 1=original, 2=wood, 3=purple diamond
+// user options includes 1 = original, 2 = wood, 3 = purple diamond
 let g_blockType = [];
 const BLOCKTYPE_ORIGINAL = 1;
 const BLOCKTYPE_WOOD = 2;
 const BLOCKTYPE_PURPDIAM = 3;
 
-// ===== Collect Diamond quest global =====
+// Collect Diamond quest global
 const DIAMOND_GOAL = 8; // user required to find 8 diamond block from map
 const DIAMOND_SPAWN_COUNT = 20; // spawn 20 diamond 
 let g_diamonds = [];
@@ -196,7 +189,7 @@ let g_readyToTurnIn = false;
 let g_winShown = false;
 let g_diamondCube = null;
 
-// ===== terrain global =====
+// terrain global
 const USE_SIMPLE_TERRAIN = true;
 
 // bigger STEP = fewer tiles = faster. 4 => 8x8 tiles, 2 => 16x16 tiles.
@@ -209,7 +202,7 @@ const TERRAIN_UNIT_H = 0.30;
 let g_groundHeights = []; // 2D array
 
 
-// ===== Croc WIN animation (shake -> explode -> cash) =====
+// Croc WIN animation (shake -> explode -> cash)
 let g_crocWinActive = false;
 let g_crocWinStart = 0;
 
@@ -217,7 +210,6 @@ const WIN_TOTAL = 2.5;        // total seconds before showing win screen
 const WIN_EXPLODE_AT = 0.55;  // when croc disappears and cash appears
 
 let g_cash = [];              // particles
-
 
 // croc location (matches renderCrocInWorld(2, -0.72, 2, ...))
 const CROC_POS = [2, -0.72, 2];
@@ -285,8 +277,10 @@ function main() {
 
     initMouseLookFromCamera();
     uiInit();
+    // always show story when page loads
+    uiOpen("story", 0);
     initBrushSelect();
-updateBrushHud();
+    updateBrushHud();
 
     if (!localStorage.getItem("seenIntro")) {
         uiOpen("start", 0);
@@ -338,13 +332,13 @@ function initTextures() {
 
     // wood
     const img3 = new Image();
-    img3.onload = () => { g_texture2 = sendImageToTexture(img3, 3, u_Sampler3); };
+    img3.onload = () => { g_texture3 = sendImageToTexture(img3, 3, u_Sampler3); };
     img3.onerror = () => console.log("FAILED to load:", img3.src);
     img3.src = "../imgs/wood.png";
 
     // purple Diamond
     const img4 = new Image();
-    img4.onload = () => { g_texture2 = sendImageToTexture(img4, 4, u_Sampler4); };
+    img4.onload = () => { g_texture4 = sendImageToTexture(img4, 4, u_Sampler4); };
     img4.onerror = () => console.log("FAILED to load:", img4.src);
     img4.src = "../imgs/purpleDiamond.png";
 }
@@ -410,7 +404,6 @@ function tick() {
     const b = 0.45 + 0.45 * s;
     gl.uniform4f(u_FogColor, r, g, b, 1.0);
 
-
     renderAllShapes();
 
     // optional HUD
@@ -467,7 +460,6 @@ function renderAllShapes() {
     // back to solid color for floor/diamonds unless textured
     gl.uniform1f(u_texColorWeight, 0.0);
 
-
     // floor
     // const floor = new Cube();
     // gl.uniform1f(u_texColorWeight, 0.0);
@@ -491,7 +483,7 @@ function renderAllShapes() {
     // Ground: drawGround() renders a required flattened base cube, plus optional raised terrain slabs
     drawGround();
 
-    // ===== map cubes =====
+    // map cubes 
     drawDiamonds();
     renderCrocInWorld(2, -0.72, 2, 180);
     drawMap();
@@ -554,8 +546,7 @@ function drawMap() {
             }
         }
     }
-
-    // restore default if you rely on it elsewhere
+    // restore default
     gl.uniform1f(u_texColorWeight, 1.0);
 }
 
@@ -662,6 +653,7 @@ function connectVariablesToGLSL() {
         return false;
     }
     a_UV = gl.getAttribLocation(gl.program, 'a_UV');
+
     // Get the storage location of u_FragColor
     u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
     if (!u_FragColor) {
@@ -691,7 +683,6 @@ function connectVariablesToGLSL() {
     u_Sampler3 = gl.getUniformLocation(gl.program, 'u_Sampler3');
     u_Sampler4 = gl.getUniformLocation(gl.program, 'u_Sampler4');
 
-
     const I = new Matrix4();
     gl.uniformMatrix4fv(u_ModelMatrix, false, I.elements);
     gl.uniformMatrix4fv(u_ViewMatrix, false, I.elements);
@@ -718,7 +709,7 @@ function connectVariablesToGLSL() {
     gl.uniform1f(u_FogNear, 8.0);
     gl.uniform1f(u_FogFar, 28.0);
     gl.uniform1i(u_useFog, 1);
-    // default: no texture influence unless you set it per-object
+    // default
     gl.uniform1f(u_texColorWeight, 0.0);
 }
 
@@ -850,7 +841,7 @@ function getFrontCell(reach = 1.7) {
     const wx = ex + fx * reach;
     const wz = ez + fz * reach;
 
-    // world -> map index (matches your drawMap translate(x-half, ..., z-half))
+    // world -> map index that match drawMap translate
     const half = MAP_SIZE / 2;
     const mx = Math.floor(wx + half);
     const mz = Math.floor(wz + half);
@@ -859,7 +850,6 @@ function getFrontCell(reach = 1.7) {
     return { x: mx, z: mz };
 }
 
-// additional function
 function saveWorld() {
     localStorage.setItem("world32", JSON.stringify({
         map: g_map,
@@ -891,7 +881,7 @@ function initMouseLookFromCamera() {
 
     const len = Math.hypot(dx, dy, dz) || 1.0;
 
-    // yaw around Y: atan2(x, z) with z-forward
+    // yaw around Y
     g_yaw = g_targetYaw = Math.atan2(dx, dz);
     // pitch up/down
     g_pitch = g_targetPitch = Math.asin(dy / len);
@@ -1108,7 +1098,6 @@ function uiInit() {
     };
 }
 
-
 // add my blocky animal to world, a simplifed version
 function drawCrocCube(mat, color) {
     g_crocCube.textureNum = -2;   // solid color
@@ -1163,7 +1152,7 @@ function updateCrocWinAnim(dtSec) {
         g_cash = g_cash.filter(m => m.life > 0);
     }
 
-    // when done, show win UI (once)
+    // when done, show win UI
     if (t >= WIN_TOTAL) {
         g_crocWinActive = false;
         g_cash = [];
@@ -1369,15 +1358,13 @@ function updateDiamondQuest() {
         }
     }
 
-    // HUD text (use your existing #fps div)
+    // HUD text
     const hudMsg = g_readyToTurnIn
-        ? `Diamonds: ${g_diamondCollected}/${DIAMOND_GOAL} | Go to the croc!`
-        : `Diamonds: ${g_diamondCollected}/${DIAMOND_GOAL}`;
+        ? `Collected Diamonds: ${g_diamondCollected}/${DIAMOND_GOAL} | Go to the croc!`
+        : `Collected Diamonds: ${g_diamondCollected}/${DIAMOND_GOAL}`;
 
-    const brushMsg =
-        `Brush: ${g_placeBrush === 1 ? "Original" : g_placeBrush === 2 ? "Wood" : "Purple Diamond"}`;
+    sendTextToHTML(hudMsg, "taskBox");
 
-    sendTextToHTML(`${hudMsg} | ${brushMsg}`, "taskBox");
 
     // win condition: after 8/8 get close to croc
     if (!g_winShown && g_readyToTurnIn) {
@@ -1478,33 +1465,33 @@ function groundHeightAt(wx, wz) {
 
 
 function updateBrushHud() {
-  const el = document.getElementById("brushHud");
-  if (!el) return;
+    const el = document.getElementById("brushHud");
+    if (!el) return;
 
-  // little pop animation
-  el.classList.remove("pop");
-  void el.offsetWidth; // restart animation
-  el.classList.add("pop");
-  setTimeout(() => el.classList.remove("pop"), 140);
+    // little pop animation
+    el.classList.remove("pop");
+    void el.offsetWidth; // restart animation
+    el.classList.add("pop");
+    setTimeout(() => el.classList.remove("pop"), 140);
 
-  const name =
-    (g_placeBrush === BLOCKTYPE_ORIGINAL) ? "Original" :
-    (g_placeBrush === BLOCKTYPE_WOOD) ? "Wood" :
-    "Purple Diamond";
+    const name =
+        (g_placeBrush === BLOCKTYPE_ORIGINAL) ? "Original" :
+            (g_placeBrush === BLOCKTYPE_WOOD) ? "Wood" :
+                "Purple Diamond";
 
-  el.textContent = `Brush: ${g_placeBrush} (${name})  |  Press 1/2/3`;
+    el.textContent = `Brush: ${g_placeBrush} (${name})  |  click keyboard 1/2/3 to select`;
 }
 
 
-function initBrushSelect(){
-  const s = document.getElementById("brushSelect");
-  if(!s) return;
+function initBrushSelect() {
+    const s = document.getElementById("brushSelect");
+    if (!s) return;
 
-  // start value matches current brush
-  s.value = String(g_placeBrush);
+    // start value matches current brush
+    s.value = String(g_placeBrush);
 
-  s.onchange = () => {
-    g_placeBrush = parseInt(s.value); // 1 or 2
-    updateBrushHud();
-  };
+    s.onchange = () => {
+        g_placeBrush = parseInt(s.value); // 1 or 2
+        updateBrushHud();
+    };
 }

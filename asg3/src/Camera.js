@@ -60,7 +60,7 @@ class Camera {
         this.up = new Vector3([0, 1, 0]);
 
         this.pitch = 0;      // current pitch angle (degrees)
-        this.maxPitch = 89;  // clamp so you don't flip upside down
+        this.maxPitch = 89;  // don't flip upside down
 
 
         this.viewMatrix = new Matrix4();
@@ -141,7 +141,7 @@ class Camera {
     }
 
 
-    // ===== SPEC: panLeft / panRight =====
+    // panLeft / panRight
     panLeft() { this._yaw(+this.alpha); }
     panRight() { this._yaw(-this.alpha); }
 
@@ -158,7 +158,7 @@ class Camera {
 
         let f_prime = rotationMatrix.multiplyVector3(f);
 
-        // at = eye + f_prime  (don't reassign this.at; keep same Vector3 object)
+        // at = eye + f_prime
         this.at.set(this.eye);
         this.at.add(f_prime);
 
@@ -195,11 +195,10 @@ class Camera {
 
 
     mouseLook(dxPixels, dyPixels) {
-        const SENS = 0.009; // degrees per pixel (tune)
+        const SENS = 0.023; // degrees per pixel (tune)
         this._yaw(-dxPixels * SENS);     // left/right
         this._pitch(-dyPixels * SENS);   // up/down
     }
-
 
     tryMove(dx, dz) {
         // keep eye height fixed so you don't "dig"
@@ -221,7 +220,7 @@ class Camera {
             return;
         }
 
-        // optional: sliding along walls (feels nicer)
+        // sliding along walls
         if (canStandAt(nx, ez)) {
             this.eye.elements[0] = nx;
             this.at.elements[0] += dx;

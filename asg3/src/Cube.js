@@ -3,10 +3,10 @@ class Cube {
         this.type = 'cube';
         this.color = [1, 1, 1, 1];
         this.matrix = new Matrix4();
-        this.textureNum = -2; // -2 solid, 0 texture0, -1 uv debug
+        this.textureNum = -2; // -2 solid, -1 uv debug, 0-4 texture
 
         // 36 vertices (12 triangles)
-        this.verts = new Float32Array([
+        this.cubeVerts32 = new Float32Array([
             // FRONT (z=0)
             0, 0, 0, 1, 1, 0, 1, 0, 0,
             0, 0, 0, 0, 1, 0, 1, 1, 0,
@@ -27,8 +27,8 @@ class Cube {
             0, 0, 0, 1, 0, 0, 1, 0, 1,
         ]);
 
-        // UVs matching vertex order above
-        this.uvs = new Float32Array([
+        // cubeVerts matching vertex order above
+        this.cubeVerts = new Float32Array([
             // FRONT
             0, 0, 1, 1, 1, 0,
             0, 0, 0, 1, 1, 1,
@@ -58,11 +58,11 @@ class Cube {
 
         Cube.posBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, Cube.posBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, this.verts, gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, this.cubeVerts32, gl.STATIC_DRAW);
 
         Cube.uvBuffer = gl.createBuffer();
         gl.bindBuffer(gl.ARRAY_BUFFER, Cube.uvBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, this.uvs, gl.STATIC_DRAW);
+        gl.bufferData(gl.ARRAY_BUFFER, this.cubeVerts, gl.STATIC_DRAW);
     }
 
     renderFast() {
@@ -81,6 +81,21 @@ class Cube {
             gl.uniform1i(u_Sampler1, 1);
         }
 
+        if (this.textureNum === 2 && g_texture2) {
+            gl.activeTexture(gl.TEXTURE2);
+            gl.bindTexture(gl.TEXTURE_2D, g_texture2);
+            gl.uniform1i(u_Sampler2, 2);
+        }
+        if (this.textureNum === 3 && g_texture3) {
+            gl.activeTexture(gl.TEXTURE3);
+            gl.bindTexture(gl.TEXTURE_2D, g_texture3);
+            gl.uniform1i(u_Sampler3, 3);
+        }
+        if (this.textureNum === 4 && g_texture4) {
+            gl.activeTexture(gl.TEXTURE4);
+            gl.bindTexture(gl.TEXTURE_2D, g_texture4);
+            gl.uniform1i(u_Sampler4, 4);
+        }
 
         gl.uniform1i(u_whichTexture, this.textureNum);
         gl.uniform4f(u_FragColor, this.color[0], this.color[1], this.color[2], this.color[3]);
@@ -91,7 +106,7 @@ class Cube {
         gl.vertexAttribPointer(a_Position, 3, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(a_Position);
 
-        // uvs
+        // cubeVerts
         gl.bindBuffer(gl.ARRAY_BUFFER, Cube.uvBuffer);
         gl.vertexAttribPointer(a_UV, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(a_UV);

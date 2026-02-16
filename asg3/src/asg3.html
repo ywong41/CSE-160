@@ -92,7 +92,6 @@
             left: 12px;
             top: 12px;
             z-index: 12;
-            /* above canvas */
             padding: 8px 10px;
             border-radius: 10px;
             background: rgba(217, 141, 0, 0.709);
@@ -101,6 +100,12 @@
             font-size: 13px;
             line-height: 1.2;
             pointer-events: none;
+        }
+
+        #brushHud {
+            position: absolute;
+            right: 12px;
+            bottom: 10px;
         }
     </style>
 </head>
@@ -115,24 +120,33 @@
             <li>Press <b>H</b> or click <b>?</b> to open Help.</li>
             <li>Click <b>↻</b> to replay the story pages and game.</li>
             <li>Click canvas to rotate camera; press <b>ESC</b> to cancel mouse control.</li>
+            <li>Save/Load: Press <b>P</b> to save your current world (blocks + types) to the browser’s localStorage, and
+                <b>L</b> to load it back (persists after refresh on the same device/browser).
+            </li>
 
             <br>
-            <p> Suggested “wow” points!</p>
-            <li><strong>Terrain map</strong>: Instead of a flat base, I developed a smooth terrain map with gentle, rolling hills.</li>            
-            <li><strong>Distance fog with day-night shift</strong>: I implemented atmospheric distance fog + subtle day/night color shift to make the feel alive.</li>
-            <li><strong>Animated collectibles</strong>: I added a rotate and up-down motion per diamond block to give user a game-like "treasure hunt"
-                experience.</li>
-
+            <p> Suggested “wow” points:</p>
+            <li><strong>Terrain map</strong>: Instead of a flat base, I developed a smooth terrain map with gentle,
+                rolling hills.</li>
+            <li><strong>Distance fog with day-night shift</strong>: I implemented atmospheric distance fog + subtle
+                day/night color shift to make the feel alive.</li>
+            <li><strong>Animated collectibles</strong>: I added a rotate and up-down motion per diamond block to give
+                user a game-like "treasure hunt" experience.</li>
+            <li><strong>Brush-based block placement (multiple textures)</strong>: I added a brush selector (keyboard
+                1/2/3) so players can place different textured blocks (stone / wood / purple diamond)</li>
             <p>Hope you enjoy!</p>
         </ul>
     </div>
-    
+
 
     <div id="gameWrap">
         <canvas id="webgl" width="700" height="700">
             Please use a browser that supports "canvas"
         </canvas>
-        <div id="taskBox">Diamonds: 0/8</div>
+        <div id="brushHud" class="hud-badge">Brush: 1 (Original)</div>
+
+
+        <div id="taskBox">Collected Diamonds: 0/8</div>
 
 
         <div id="uiOverlay" class="hidden">
@@ -154,13 +168,10 @@
             <div><b>WASD</b> move | Mouse look (click canvas) </div>
             <div><b>R</b> add block | <b>F</b> delete block</div>
         </div>
-
     </div>
     <br>
     <br>
     Performance: <span id="numdot">...</span>
-
-
 
     <script src="../lib/webgl-utils.js"></script>
     <script src="../lib/webgl-debug.js"></script>
