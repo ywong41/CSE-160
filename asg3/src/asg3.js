@@ -321,7 +321,7 @@ function initTextures() {
     const img1 = new Image();
     img1.onload = () => { g_texture1 = sendImageToTexture(img1, 1, u_Sampler1); };
     img1.onerror = () => console.log("FAILED to load:", img1.src);
-    img1.src = "../imgs/tempSky.jpg";
+    img1.src = "../imgs/tempSky.png";
 
     // diamond
     const img2 = new Image();
