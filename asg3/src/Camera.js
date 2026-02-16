@@ -52,14 +52,13 @@ function v3Cross(a, b) {
 
 class Camera {
     constructor(canvas) {
-        // ===== SPEC REQUIRED ATTRIBUTES =====
         this.fov = 60;
 
         this.eye = new Vector3([0, 0, 0]);
         this.at = new Vector3([0, 0, -1]);
         this.up = new Vector3([0, 1, 0]);
 
-        this.pitch = 0;      // current pitch angle (degrees)
+        this.pitch = 0;      // current pitch angle
         this.maxPitch = 89;  // don't flip upside down
 
 
@@ -94,7 +93,7 @@ class Camera {
         f.set(this.at);
         f.sub(this.eye);
 
-        // XZ-only walk (prevents digging into ground)
+        // XZ-only walk to prevents digging into ground
         f.elements[1] = 0;
         f.normalize();
         f.mul(this.speed);
@@ -229,9 +228,6 @@ class Camera {
             this.eye.elements[2] = nz;
             this.at.elements[2] += dz;
         }
-
         this.updateViewMatrix();
     }
-
-
 }

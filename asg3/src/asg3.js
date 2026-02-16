@@ -10,91 +10,91 @@
  */
 
 var VERTEX_SHADER = `
-precision mediump float;
+    precision mediump float;
 
-attribute vec3 a_Position;
-attribute vec2 a_UV;
-varying vec2 v_UV;
-varying vec3 v_WorldPos;
+    attribute vec3 a_Position;
+    attribute vec2 a_UV;
+    varying vec2 v_UV;
+    varying vec3 v_WorldPos;
 
-uniform mat4 u_ModelMatrix;
-uniform mat4 u_ViewMatrix;
-uniform mat4 u_ProjectionMatrix;
-uniform mat4 u_GlobalRotateMatrix;
+    uniform mat4 u_ModelMatrix;
+    uniform mat4 u_ViewMatrix;
+    uniform mat4 u_ProjectionMatrix;
+    uniform mat4 u_GlobalRotateMatrix;
 
-void main() {
-  v_UV = a_UV;
+    void main() {
+    v_UV = a_UV;
 
-  vec4 worldPos = u_GlobalRotateMatrix * u_ModelMatrix * vec4(a_Position, 1.0);
-  v_WorldPos = worldPos.xyz;
+    vec4 worldPos = u_GlobalRotateMatrix * u_ModelMatrix * vec4(a_Position, 1.0);
+    v_WorldPos = worldPos.xyz;
 
-  gl_Position = u_ProjectionMatrix * u_ViewMatrix * worldPos;
+    gl_Position = u_ProjectionMatrix * u_ViewMatrix * worldPos;
 }`
 
 
 var FRAGMENT_SHADER = `
-precision mediump float;
+    precision mediump float;
 
-varying vec2 v_UV;
-varying vec3 v_WorldPos;
+    varying vec2 v_UV;
+    varying vec3 v_WorldPos;
 
-uniform vec4 u_FragColor;
-uniform sampler2D u_Sampler0;
-uniform sampler2D u_Sampler1;
-uniform sampler2D u_Sampler2;   // diamond texture
-uniform sampler2D u_Sampler3;   // wood texture
-uniform sampler2D u_Sampler4;   // purple diamond texture
+    uniform vec4 u_FragColor;
+    uniform sampler2D u_Sampler0;
+    uniform sampler2D u_Sampler1;
+    uniform sampler2D u_Sampler2;   // diamond texture
+    uniform sampler2D u_Sampler3;   // wood texture
+    uniform sampler2D u_Sampler4;   // purple diamond texture
 
-uniform int u_whichTexture;
+    uniform int u_whichTexture;
 
-uniform float u_texColorWeight;
+    uniform float u_texColorWeight;
 
-uniform vec3 u_CameraPos;
-uniform vec4 u_FogColor;
-uniform float u_FogNear;
-uniform float u_FogFar;
-uniform int u_useFog;
+    uniform vec3 u_CameraPos;
+    uniform vec4 u_FogColor;
+    uniform float u_FogNear;
+    uniform float u_FogFar;
+    uniform int u_useFog;
 
-void main() {
-  vec4 baseColor = u_FragColor;
-  vec4 outColor;
+    void main() {
+    vec4 baseColor = u_FragColor;
+    vec4 outColor;
 
-  if (u_whichTexture == -2) {
-    outColor = baseColor;
-  }else if (u_whichTexture == -1) {
-    outColor = vec4(v_UV, 1.0, 1.0);
-  } else if (u_whichTexture == 0) {
-    vec4 texColor = texture2D(u_Sampler0, v_UV);
-    float t = clamp(u_texColorWeight, 0.0, 1.0);
-    outColor = mix(baseColor, texColor, t);
-  } else if (u_whichTexture == 1) {
-    vec4 texColor = texture2D(u_Sampler1, v_UV);
-    float t = clamp(u_texColorWeight, 0.0, 1.0);
-    outColor = mix(baseColor, texColor, t);
-  } else if (u_whichTexture == 2) {                 // diamond texture
-    vec4 texColor = texture2D(u_Sampler2, v_UV);
-    float t = clamp(u_texColorWeight, 0.0, 1.0);
-    outColor = mix(baseColor, texColor, t);
- }else if (u_whichTexture == 3) {
-  vec4 texColor = texture2D(u_Sampler3, v_UV);
-  float t = clamp(u_texColorWeight, 0.0, 1.0);
-  outColor = mix(baseColor, texColor, t);
-}else if (u_whichTexture == 4) {
-  vec4 texColor = texture2D(u_Sampler4, v_UV);
-  float t = clamp(u_texColorWeight, 0.0, 1.0);
-  outColor = mix(baseColor, texColor, t);
-}else {
-    outColor = vec4(1.0, 0.2, 0.2, 1.0);
-  }
+    if (u_whichTexture == -2) {
+        outColor = baseColor;
+    }else if (u_whichTexture == -1) {
+        outColor = vec4(v_UV, 1.0, 1.0);
+    } else if (u_whichTexture == 0) {
+        vec4 texColor = texture2D(u_Sampler0, v_UV);
+        float t = clamp(u_texColorWeight, 0.0, 1.0);
+        outColor = mix(baseColor, texColor, t);
+    } else if (u_whichTexture == 1) {
+        vec4 texColor = texture2D(u_Sampler1, v_UV);
+        float t = clamp(u_texColorWeight, 0.0, 1.0);
+        outColor = mix(baseColor, texColor, t);
+    } else if (u_whichTexture == 2) {                 // diamond texture
+        vec4 texColor = texture2D(u_Sampler2, v_UV);
+        float t = clamp(u_texColorWeight, 0.0, 1.0);
+        outColor = mix(baseColor, texColor, t);
+    } else if (u_whichTexture == 3) {
+        vec4 texColor = texture2D(u_Sampler3, v_UV);
+        float t = clamp(u_texColorWeight, 0.0, 1.0);
+        outColor = mix(baseColor, texColor, t);
+    }else if (u_whichTexture == 4) {
+        vec4 texColor = texture2D(u_Sampler4, v_UV);
+        float t = clamp(u_texColorWeight, 0.0, 1.0);
+        outColor = mix(baseColor, texColor, t);
+    }else {
+        outColor = vec4(1.0, 0.2, 0.2, 1.0);
+    }
 
-  // FOG distance based
-  if (u_useFog == 1) {
-    float d = distance(u_CameraPos, v_WorldPos);
-    float fogT = clamp((d - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
-    outColor = mix(outColor, u_FogColor, fogT);
-  }
+    // FOG distance based
+    if (u_useFog == 1) {
+        float d = distance(u_CameraPos, v_WorldPos);
+        float fogT = clamp((d - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
+        outColor = mix(outColor, u_FogColor, fogT);
+    }
 
-  gl_FragColor = outColor;
+    gl_FragColor = outColor;
 }`
 
 // Globals
@@ -211,7 +211,7 @@ const WIN_EXPLODE_AT = 0.55;  // when croc disappears and cash appears
 
 let g_cash = [];              // particles
 
-// croc location (matches renderCrocInWorld(2, -0.72, 2, ...))
+// set croc location
 const CROC_POS = [2, -0.72, 2];
 
 window.onload = () => main();
@@ -229,7 +229,7 @@ let g_crocJaw = 0;
 let g_crocTail1 = 0;
 let g_crocTail2 = 0;
 
-// reuse matrices (avoid per-frame allocations)
+// reuse matrices to avoid per-frame allocations
 let croc_base, croc_body, croc_belly, croc_tailJ1, croc_tail1, croc_tailJ2, croc_tail2;
 let croc_head, croc_snout, croc_jawJ, croc_jaw, croc_eye1, croc_eye2, croc_iris1, croc_iris2;
 let croc_hip, croc_thigh, croc_knee, croc_calf, croc_ankle, croc_foot;
@@ -259,7 +259,6 @@ function initCrocMatrices() {
     croc_foot = new Matrix4();
 }
 
-// ========== Main ==========
 function main() {
     setupWebGL();
     connectVariablesToGLSL();
@@ -377,7 +376,6 @@ function sendImageToTexture(image, texUnit, samplerLoc) {
     return tex;
 }
 
-// ========== Tick / Render ==========
 function tick() {
     const now = performance.now();
     const dt = now - g_lastFrameMS;
@@ -406,10 +404,10 @@ function tick() {
 
     renderAllShapes();
 
-    // optional HUD
+    // HUD
     sendTextToHTML(`FPS: ${g_fpsSMA.toFixed(1)} | ${g_msSMA.toFixed(1)} ms`, "numdot");
 
-    // make animal feel alive
+    // add animal animation
     g_crocJaw = Math.max(0, 25 * Math.sin(g_seconds * 2.0));
     g_crocTail1 = 15 * Math.sin(g_seconds * 1.6);
     g_crocTail2 = 25 * Math.sin(g_seconds * 1.6 + Math.PI / 3);
@@ -425,7 +423,7 @@ function renderAllShapes() {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // camera pos for fog (do this once per frame)
+    // camera pos for fog (once per frame)
     gl.uniform3f(
         u_CameraPos,
         g_camera.eye.elements[0],
@@ -442,8 +440,7 @@ function renderAllShapes() {
 
     sky.textureNum = 1;                   // use sky texture
     sky.color = [0.4, 0.6, 1.0, 1.0];     // tinted blue
-    // Texture + color mixed
-    //(weight 0.0 is solid blue, 1.0 is pure texture, 0.7 is blue-tinted texture)
+    //Texture + color mixed (weight 0.0 is solid blue, 1.0 is pure texture, 0.7 is blue-tinted texture)
     gl.uniform1f(u_texColorWeight, 0.7);  // 0.7 = 70% texture + 30% blue 
 
     gl.uniform1i(u_useFog, 0);
@@ -480,7 +477,7 @@ function renderAllShapes() {
     //   t.matrix.translate(0, -0.75, 0);
     //   t.renderFast();
 
-    // Ground: drawGround() renders a required flattened base cube, plus optional raised terrain slabs
+    // renders a required flattened base cube, plus optional raised terrain slabs
     drawGround();
 
     // map cubes 
@@ -522,12 +519,9 @@ function drawMap() {
                     color = [0.65, 0.35, 0.95, 1.0]; // purple base tint
                 }
 
-                // only update uniforms when needed
                 const colorKey = color.join(",");
                 if (lastWeight !== weight) { gl.uniform1f(u_texColorWeight, weight); lastWeight = weight; }
                 if (lastColorKey !== colorKey) {
-                    // Cube.renderFast() likely sets u_FragColor from cube.color,
-                    // but if yours doesn't, keep setting cube.color below.
                     lastColorKey = colorKey;
                 }
 
@@ -535,7 +529,6 @@ function drawMap() {
                 g_tempCube.color = color;
 
                 g_tempCube.matrix.setIdentity();
-                // compute the surface Y per cell using groundHeightAt() and start stacking from there
                 const wx = (x - half) + 0.5;   // center of the cell
                 const wz = (z - half) + 0.5;
                 const baseY = groundHeightAt(wx, wz); // top of ground at this cell
@@ -550,7 +543,6 @@ function drawMap() {
     gl.uniform1f(u_texColorWeight, 1.0);
 }
 
-
 // Camera Movement and Add/delete blocks
 // Press and hold: W: move forward, A/D: move left/right, S: move back, Q rotate left, E rotate right
 function keydown(ev) {
@@ -563,12 +555,10 @@ function keydown(ev) {
     if (k === 'q') { g_camera.panLeft(); initMouseLookFromCamera(); }
     if (k === 'e') { g_camera.panRight(); initMouseLookFromCamera(); }
 
-
     // switch brush with keyboard: 1, 2, 3
     if (k === '1') g_placeBrush = BLOCKTYPE_ORIGINAL;
     if (k === '2') g_placeBrush = BLOCKTYPE_WOOD;
     if (k === '3') g_placeBrush = BLOCKTYPE_PURPDIAM;
-
     if (k === '1' || k === '2' || k === '3') updateBrushHud();
 
     // simple Minecraft R add block | F delete block
@@ -596,7 +586,7 @@ function keydown(ev) {
         }
     }
 
-    // additional  p save world | l load world
+    // p save world | l load world
     if (k === 'p') saveWorld();
     if (k === 'l') loadWorld();
 
@@ -608,7 +598,7 @@ function addMouseControl() {
 
     document.addEventListener('mousemove', (e) => {
         if (document.pointerLockElement !== canvas) return;
-        if (g_uiOpen) return; // optional: don’t rotate when menu open
+        if (g_uiOpen) return; // camera won't rotate when menu open
 
         const MAX = 25; // prevent huge jumps
         const dx = Math.max(-MAX, Math.min(MAX, e.movementX));
@@ -632,7 +622,6 @@ function setupWebGL() {
         console.log('Failed to retrieve WebGL context');
         return;
     }
-
     gl.viewport(0, 0, canvas.width, canvas.height);
     gl.enable(gl.DEPTH_TEST);
     gl.enable(gl.CULL_FACE);
@@ -709,6 +698,7 @@ function connectVariablesToGLSL() {
     gl.uniform1f(u_FogNear, 8.0);
     gl.uniform1f(u_FogFar, 28.0);
     gl.uniform1i(u_useFog, 1);
+
     // default
     gl.uniform1f(u_texColorWeight, 0.0);
 }
@@ -750,8 +740,8 @@ function spawnDiamonds() {
     g_winShown = false;
 
     const half = MAP_SIZE / 2;
-    const margin = 1.5;               // keep away from boundary walls
-    const minDist = 1.6;              // keep diamonds from clustering
+    const margin = 1.5; // keep away from boundary walls
+    const minDist = 1.6;    // keep diamonds from clustering
     const want = (typeof DIAMOND_SPAWN_COUNT !== "undefined")
         ? DIAMOND_SPAWN_COUNT
         : DIAMOND_GOAL;
@@ -831,7 +821,7 @@ function getFrontCell(reach = 1.7) {
     let fx = g_camera.at.elements[0] - ex;
     let fz = g_camera.at.elements[2] - ez;
 
-    // ignore Y (only ground direction)
+    // ignore Y
     const len = Math.hypot(fx, fz);
     if (len < 1e-6) return null;
     fx /= len;
@@ -941,11 +931,11 @@ click ESC to unlock.`
             body:
                 `Controls:
                 WASD = move
-                Mouse = look
                 R = add block
                 F = remove block
                 P = save world
                 L = load world
+                1/2/3 = switch brush
 
                 Click canvas: lock mouse
                 ESC: unlock mouse
@@ -1133,17 +1123,15 @@ function updateCrocWinAnim(dtSec) {
 
     const t = g_seconds - g_crocWinStart;
 
-    // after explode: update particles
+    // after explode, update particles
     if (t >= WIN_EXPLODE_AT) {
         for (const m of g_cash) {
             m.life -= dtSec;
 
-            // gravity + damping
             m.v[1] -= 2.0 * dtSec;
             m.v[0] *= (1 - 0.25 * dtSec);
             m.v[2] *= (1 - 0.25 * dtSec);
 
-            // integrate
             m.p[0] += m.v[0] * dtSec;
             m.p[1] += m.v[1] * dtSec;
             m.p[2] += m.v[2] * dtSec;
@@ -1152,7 +1140,7 @@ function updateCrocWinAnim(dtSec) {
         g_cash = g_cash.filter(m => m.life > 0);
     }
 
-    // when done, show win UI
+    // show win UI
     if (t >= WIN_TOTAL) {
         g_crocWinActive = false;
         g_cash = [];
@@ -1378,12 +1366,11 @@ function updateDiamondQuest() {
 
 // function that builds terrain
 function buildSimpleTerrain() {
-    const N = MAP_SIZE / TERRAIN_STEP; // e.g. 32/4 = 8
+    const N = MAP_SIZE / TERRAIN_STEP; // 32/4 = 8
     g_groundHeights = Array.from({ length: N }, () => Array(N).fill(0));
 
-    // ---- SUPER SIMPLE: put a few “hills” into the height map ----
     // Each hill raises nearby tiles by distance falloff.
-    addHill(N, 2, 2, 3, 2);  // (cx, cz, radius, maxHeight)
+    addHill(N, 2, 2, 3, 2);
     addHill(N, 5, 3, 2, 1);
     addHill(N, 4, 6, 3, 2);
 
@@ -1395,9 +1382,8 @@ function buildSimpleTerrain() {
                 const d = Math.sqrt(dx * dx + dz * dz);
                 if (d > radius) continue;
 
-                // falloff: center high, edges low
-                const t = 1 - d / radius;              // 1..0
-                const h = Math.round(maxH * t);        // integer levels
+                const t = 1 - d / radius;
+                const h = Math.round(maxH * t); // integer levels
                 g_groundHeights[z][x] = Math.max(g_groundHeights[z][x], h);
             }
         }
@@ -1417,7 +1403,7 @@ function drawGround() {
     g_tempCube.matrix.translate(-0.5, 0, -0.5);
     g_tempCube.renderFast();
 
-    // optional “terrain map”
+    // add optional “terrain map”
     if (!USE_SIMPLE_TERRAIN) return;
 
     const half = MAP_SIZE / 2;
@@ -1439,7 +1425,7 @@ function drawGround() {
             g_tempCube.color = [0.18, 0.75, 0.18, 1.0];
 
             g_tempCube.matrix.setIdentity();
-            g_tempCube.matrix.translate(wx, yBottom, wz);          // bottom at yBottom
+            g_tempCube.matrix.translate(wx, yBottom, wz);   // bottom at yBottom
             g_tempCube.matrix.scale(TERRAIN_STEP, bumpH, TERRAIN_STEP);
             g_tempCube.matrix.translate(-0.5, 0, -0.5);
 
@@ -1449,7 +1435,7 @@ function drawGround() {
 }
 
 function groundHeightAt(wx, wz) {
-    let y = BASE_GROUND_Y + BASE_GROUND_THICK; // top of base
+    let y = BASE_GROUND_Y + BASE_GROUND_THICK;  // top of base
 
     if (!USE_SIMPLE_TERRAIN) return y;
 
