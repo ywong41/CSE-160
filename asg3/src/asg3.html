@@ -1,63 +1,177 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8" />
-        <title>Assignment 2: Blocky 3D Animal</title>
-    </head>
-    <body>
-        <p>Mia Wong</p>
-        <p>ywong41@ucsc.edu</p>
-        <p>Notes to Grader: I built a full crocodile with third-level joints (thigh, calf, foot), each can be control via a slider</p>
-        <p>There are buttons to start/stop animations, plus a fun shift+click “poke” animation.</p>
-        <p>The model rotates with a slider and has more than 8 parts, including body, tail, head, jaw, eyes, legs, and spikes...etc.</p>
-        <p>Hope you enjoy!</p>
 
-        <canvas id="webgl" width="400" height="400">
-        Please use a browser that supports "canvas"
+<head>
+    <meta charset="utf-8" />
+    <title>Assignment 3: Creating a Virtual World</title>
+    <style>
+        #gameWrap {
+            position: relative;
+            width: 700px;
+            height: 700px;
+        }
+
+        #webgl {
+            display: block;
+        }
+
+        #uiOverlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 10;
+            font-family: system-ui, Arial, sans-serif;
+        }
+
+        #uiOverlay.hidden {
+            display: none;
+        }
+
+        #uiOverlay .panel {
+            width: min(520px, 92vw);
+            background: rgba(145, 42, 218, 0.617);
+            color: white;
+            padding: 18px 18px 14px;
+            border-radius: 12px;
+            box-shadow: 0 8px 40px rgba(96, 4, 149, 0.677);
+        }
+
+        #uiOverlay h1 {
+            margin: 0 0 10px;
+            font-size: 22px;
+        }
+
+        #uiBody {
+            line-height: 1.4;
+            font-size: 14px;
+            white-space: pre-line;
+            margin-bottom: 14px;
+        }
+
+        #uiOverlay .row {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        #btnHelp {
+            position: absolute;
+            right: 12px;
+            top: 12px;
+            z-index: 11;
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: none;
+            background: rgba(200, 0, 255, 0.433);
+            color: rgb(255, 255, 255);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        #btnReplay {
+            position: absolute;
+            right: 52px;
+            top: 12px;
+            z-index: 11;
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            border: none;
+            background: rgba(35, 1, 171, 0.349);
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        #taskBox {
+            position: absolute;
+            left: 12px;
+            top: 12px;
+            z-index: 12;
+            /* above canvas */
+            padding: 8px 10px;
+            border-radius: 10px;
+            background: rgba(217, 141, 0, 0.709);
+            color: white;
+            font-family: system-ui, Arial, sans-serif;
+            font-size: 13px;
+            line-height: 1.2;
+            pointer-events: none;
+        }
+    </style>
+</head>
+
+<body>
+    <p>Mia Wong</p>
+    <p>ywong41@ucsc.edu</p>
+
+    <div id="notes">
+        <p><b>Notes to Grader:</b></p>
+        <ul>
+            <li>Press <b>H</b> or click <b>?</b> to open Help.</li>
+            <li>Click <b>↻</b> to replay the story pages and game.</li>
+            <li>Click canvas to rotate camera; press <b>ESC</b> to cancel mouse control.</li>
+
+            <br>
+            <p> Suggested “wow” points!</p>
+            <li><strong>Terrain map</strong>: Instead of a flat base, I developed a smooth terrain map with gentle, rolling hills.</li>            
+            <li><strong>Distance fog with day-night shift</strong>: I implemented atmospheric distance fog + subtle day/night color shift to make the feel alive.</li>
+            <li><strong>Animated collectibles</strong>: I added a rotate and up-down motion per diamond block to give user a game-like "treasure hunt"
+                experience.</li>
+
+            <p>Hope you enjoy!</p>
+        </ul>
+    </div>
+    
+
+    <div id="gameWrap">
+        <canvas id="webgl" width="700" height="700">
+            Please use a browser that supports "canvas"
         </canvas>
-        
-        <p>Performance:</p><p id="numdot">... </p>
-        <button id="animateAllOn">Animate All On</button>
-        <button id="animateAllOff">Animate All Off</button>
+        <div id="taskBox">Diamonds: 0/8</div>
 
-        <p>
-        Tail Slider:
-        Tail 1 (First-level joint slider):
-        <input type="range" id="tail1Slide" min="-45" max="45" value="25" step="1">
-        Tail 2 (Second-level joint slider): 
-        <input type="range" id="tail2Slide" min="-60" max="60" value="10" step="1">
-        <button id="tailOnButton">Tail On</button>
-        <button id="tailOffButton">Tail Off</button>
-        </p>
-        
-        
-        Jaw Slider:
-        <input type ="range" min="-5" max="55" value="0" class="slider" id="jawSlide">
-        <button id="jawOnButton">Jaw On</button>
-        <button id="jawOffButton">Jaw Off</button>
-        </p>
-        
-        <p>
-        Thigh Slider:
-        <input type="range" id="thighSlide" min="-25" max="15" value="0" step="1">
-        Calf Slider:
-        <input type="range" id="calfSlide" min="-10" max="12" value="0" step="1">
-        Foot Slider:
-        <input type="range" id="footSlide" min="-13" max="13" value="0" step="1">
-        <button id="walkOnButton">Walk On</button>
-        <button id="walkOffButton">Walk Off</button>
-        </p>
-        <p>
-        Camera Angle: <input type ="range" min="0" max="360" value="5" class="slider" id="angleSlide">
-        </p>
 
-        <script src="../lib/webgl-utils.js"></script>
-        <script src="../lib/webgl-debug.js"></script>
-        <script src="../lib/cuon-utils.js"></script>
-        <script src="../lib/cuon-matrix.js"></script>
-        <script src="Triangle.js"></script>
-        <script src="Cylinder.js"></script>
-        <script src="Pyramid.js"></script>
-        <script src="asg2.js"></script>
-    </body>
+        <div id="uiOverlay" class="hidden">
+            <div class="panel">
+                <h1 id="uiTitle">Simple Minecraft</h1>
+                <div id="uiBody"></div>
+
+                <div class="row">
+                    <button id="btnBack">Back</button>
+                    <button id="btnNext">Next</button>
+                    <button id="btnClose">Close</button>
+                </div>
+            </div>
+        </div>
+
+        <button id="btnHelp">?</button>
+        <button id="btnReplay">↻</button>
+        <div id="hud">
+            <div><b>WASD</b> move | Mouse look (click canvas) </div>
+            <div><b>R</b> add block | <b>F</b> delete block</div>
+        </div>
+
+    </div>
+    <br>
+    <br>
+    Performance: <span id="numdot">...</span>
+
+
+
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="../lib/cuon-matrix.js"></script>
+
+    <script src="Triangle.js"></script>
+    <script src="Cube.js"></script>
+    <script src="Camera.js"></script>
+    <script src="asg3.js"></script>
+
+</body>
+
 </html>
