@@ -265,7 +265,7 @@ function initCrocMatrices() {
 function main() {
     setupWebGL();
     connectVariablesToGLSL();
-
+    addActionsForHtmlUI();
     g_camera = new Camera(canvas);
 
     //set starting point
@@ -310,6 +310,32 @@ function main() {
     initCrocMatrices();
 
     requestAnimationFrame(tick);
+}
+
+// Set up action for the HTML UI elements
+function addActionsForHtmlUI(){
+
+    // Slider Events
+    // document.getElementById('angleSlide').addEventListener('input', function() { g_globalAngle = parseFloat(this.value); renderScene(); });
+    // document.getElementById('tail1Slide').addEventListener('input', function() { g_tail1Angle = parseFloat(this.value); renderScene(); });
+    // document.getElementById('tail2Slide').addEventListener('input', function() { g_tail2Angle = parseFloat(this.value); renderScene(); });
+    // document.getElementById('jawSlide').addEventListener('input', function() { g_jawAngle = parseFloat(this.value); renderScene(); });
+    // document.getElementById('thighSlide').addEventListener('input', function () { g_thigh = parseFloat(this.value); renderScene(); });
+    // document.getElementById('calfSlide').addEventListener('input', function () { g_calf = parseFloat(this.value); renderScene(); });
+    // document.getElementById('footSlide').addEventListener('input', function () { g_foot = parseFloat(this.value); renderScene(); });
+
+    // Button Events
+    document.getElementById('normalOn').onclick = function() {g_normalOn = true; };
+    document.getElementById('normalOff').onclick = function() {g_normalOn = false; };
+
+    // document.getElementById('tailOnButton').onclick = function() { g_tailAnimation  = true; };
+    // document.getElementById('tailOffButton').onclick = function() { g_tailAnimation  = false; };
+    // document.getElementById('jawOnButton').onclick = function() { g_jawAnimation = true; };
+    // document.getElementById('jawOffButton').onclick = function() { g_jawAnimation = false; };
+    // document.getElementById('walkOnButton').onclick  = function() { g_walkAnimation = true; };
+    // document.getElementById('walkOffButton').onclick = function() { g_walkAnimation = false; };
+    // document.getElementById("animateAllOn").onclick = function() { gAnimateAll = true; };
+    // document.getElementById("animateAllOff").onclick = function() { gAnimateAll = false; };
 }
 
 // loads textures
@@ -436,12 +462,12 @@ function renderAllShapes() {
 
     // Sky (a big cube surrounding the world)
     if (!sky) sky = new Cube(); // big cube, creat once to help performance
+
     sky.matrix.setIdentity();
     sky.matrix.scale(1000, 1000, 1000);
     sky.matrix.translate(-0.5, -0.5, -0.5);
 
-
-    sky.textureNum = 1;                   // use sky texture
+    if(g_normalOn) sky.textureNum = 1;  // use sky texture
     sky.color = [0.4, 0.6, 1.0, 1.0];     // tinted blue
     //Texture + color mixed (weight 0.0 is solid blue, 1.0 is pure texture, 0.7 is blue-tinted texture)
     gl.uniform1f(u_texColorWeight, 0.7);  // 0.7 = 70% texture + 30% blue 
