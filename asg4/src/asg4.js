@@ -11,7 +11,7 @@
 
 var VERTEX_SHADER = `
     precision mediump float;
-    attribute vec4 a_Position;
+    attribute vec3 a_Position;
     attribute vec2 a_UV;
     attribute vec3 a_Normal;
 
@@ -57,12 +57,15 @@ var FRAGMENT_SHADER = `
     uniform float u_FogNear;
     uniform float u_FogFar;
     uniform int u_useFog;
+    uniform vec3 u_lightPos;
 
     void main() {
     vec4 baseColor = u_FragColor;
     vec4 outColor;
 
-    if (u_whichTexture == -2) {
+    if(u_whichTexture == -3){
+        outColor = vec4((v_Normal + 1.0)/ 2.0, 1.0);    // use normal debug color
+    }else if (u_whichTexture == -2) {
         outColor = baseColor;
     }else if (u_whichTexture == -1) {
         outColor = vec4(v_UV, 1.0, 1.0);
@@ -98,19 +101,43 @@ var FRAGMENT_SHADER = `
     }
 
     gl_FragColor = outColor;
+
+    // Debug light distance colors
+    vec3 lightVector = v_WorldPos - u_lightPos;
+    float r = length(lightVector);
+
+    if (r < 1.0) {
+        outColor = vec4(1.0, 0.0, 0.0, 1.0);   // red
+    } else if (r < 2.0) {
+        outColor = vec4(0.0, 1.0, 0.0, 1.0);   // green
+    }
+
+    // FOG distance based
+    if (u_useFog == 1) {
+        float d = distance(u_CameraPos, v_WorldPos);
+        float fogT = clamp((d - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
+        outColor = mix(outColor, u_FogColor, fogT);
+    }
+
+    gl_FragColor = outColor;
 }`
 
 // Globals
 let canvas, gl;
 
+
 // Attributes
-let a_Position, a_UV;
+let a_Position, a_UV, a_Normal;
+
+// button 
+let g_normalOn = false;
+let g_lightPos = [0,1,-2];
 
 // Uniforms
 let u_FragColor, u_ModelMatrix, u_ViewMatrix, u_ProjectionMatrix, u_GlobalRotateMatrix, u_texColorWeight;
-
 let u_whichTexture, u_Sampler0;
 let u_Sampler1, u_Sampler2, u_Sampler3, u_Sampler4;
+let u_lightPos; 
 
 // Textures (stone, sky, diamond, wood, purple diamond)
 let g_texture0 = null, g_texture1 = null, g_texture2 = null, g_texture3 = null, g_texture4 = null;
@@ -142,6 +169,8 @@ let g_msSMA = 0;
 // Map
 const MAP_SIZE = 32;
 let g_map = [];
+
+let g_testSphere = null;
 
 // ==== Collision constants ====
 const PLAYER_RADIUS = 0.18;
@@ -269,25 +298,21 @@ function main() {
     g_camera = new Camera(canvas);
 
     //set starting point
-    g_camera.eye = new Vector3([0, 0.3, 3]);
-    g_camera.at = new Vector3([0, 0.3, 2]);
+    g_camera.eye = new Vector3([0, 0.3, 8]);
+    g_camera.at = new Vector3([0, 0.3, 5]);
     g_camera.viewMatrix.setLookAt(
         g_camera.eye.elements[0], g_camera.eye.elements[1], g_camera.eye.elements[2],
         g_camera.at.elements[0], g_camera.at.elements[1], g_camera.at.elements[2],
         g_camera.up.elements[0], g_camera.up.elements[1], g_camera.up.elements[2]
     );
 
+
+
+    g_testSphere = new Sphere();
+
     initMouseLookFromCamera();
-    uiInit();
-    // always show story when page loads
-    uiOpen("story", 0);
     initBrushSelect();
     updateBrushHud();
-
-    if (!localStorage.getItem("seenIntro")) {
-        uiOpen("start", 0);
-        localStorage.setItem("seenIntro", "1");
-    }
 
     document.onkeydown = keydown;
     addMouseControl();
@@ -313,10 +338,20 @@ function main() {
 }
 
 // Set up action for the HTML UI elements
-function addActionsForHtmlUI(){
+function addActionsForHtmlUI() {
 
     // Slider Events
-    // document.getElementById('angleSlide').addEventListener('input', function() { g_globalAngle = parseFloat(this.value); renderScene(); });
+    document.getElementById('angleSlide').addEventListener('input', function () {
+        const deg = parseFloat(this.value);
+        g_targetYaw = deg * Math.PI / 180.0;   // world-space yaw
+        g_yaw = g_targetYaw;
+        applyMouseLookToCamera();
+    });
+
+    document.getElementById('lightSlideX').addEventListener('mousemove', function(ev) { if(ev.buttons == 1) { g_lightPos[0] = this.value/100; renderAllShapes(); }});
+    document.getElementById('lightSlideY').addEventListener('mousemove', function(ev) { if(ev.buttons == 1) { g_lightPos[1] = this.value/100; renderAllShapes(); }});
+    document.getElementById('lightSlideZ').addEventListener('mousemove', function(ev) { if(ev.buttons == 1) { g_lightPos[2] = this.value/100; renderAllShapes(); }});
+
     // document.getElementById('tail1Slide').addEventListener('input', function() { g_tail1Angle = parseFloat(this.value); renderScene(); });
     // document.getElementById('tail2Slide').addEventListener('input', function() { g_tail2Angle = parseFloat(this.value); renderScene(); });
     // document.getElementById('jawSlide').addEventListener('input', function() { g_jawAngle = parseFloat(this.value); renderScene(); });
@@ -325,8 +360,8 @@ function addActionsForHtmlUI(){
     // document.getElementById('footSlide').addEventListener('input', function () { g_foot = parseFloat(this.value); renderScene(); });
 
     // Button Events
-    document.getElementById('normalOn').onclick = function() {g_normalOn = true; };
-    document.getElementById('normalOff').onclick = function() {g_normalOn = false; };
+    document.getElementById('normalOn').onclick = function () { g_normalOn = true; };
+    document.getElementById('normalOff').onclick = function () { g_normalOn = false; };
 
     // document.getElementById('tailOnButton').onclick = function() { g_tailAnimation  = true; };
     // document.getElementById('tailOffButton').onclick = function() { g_tailAnimation  = false; };
@@ -460,6 +495,18 @@ function renderAllShapes() {
         g_camera.eye.elements[2]
     );
 
+    gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+
+    // draw light marker cube
+    let light = new Cube();
+    light.textureNum = -2;                 // solid color
+    light.color = [1.0, 1.0, 0.0, 1.0];    // yellow
+    light.matrix.setIdentity();
+    light.matrix.translate(g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+    light.matrix.scale(0.15, 0.15, 0.15);
+    light.matrix.translate(-0.5, -0.5, -0.5); // center the cube on the light position
+    light.renderFast();
+
     // Sky (a big cube surrounding the world)
     if (!sky) sky = new Cube(); // big cube, creat once to help performance
 
@@ -467,7 +514,7 @@ function renderAllShapes() {
     sky.matrix.scale(1000, 1000, 1000);
     sky.matrix.translate(-0.5, -0.5, -0.5);
 
-    if(g_normalOn) sky.textureNum = 1;  // use sky texture
+    sky.textureNum = 1;  // use sky texture
     sky.color = [0.4, 0.6, 1.0, 1.0];     // tinted blue
     //Texture + color mixed (weight 0.0 is solid blue, 1.0 is pure texture, 0.7 is blue-tinted texture)
     gl.uniform1f(u_texColorWeight, 0.7);  // 0.7 = 70% texture + 30% blue 
@@ -508,6 +555,8 @@ function renderAllShapes() {
 
     // renders a required flattened base cube, plus optional raised terrain slabs
     drawGround();
+
+    drawTestSphere();
 
     // map cubes 
     drawDiamonds();
@@ -671,8 +720,8 @@ function connectVariablesToGLSL() {
     a_UV = gl.getAttribLocation(gl.program, 'a_UV');
 
     // connect Normal attribute
-    a_Normal = gl.getUniformLocation(gl.program, 'a_Normal');
-    if (!a_Normal) {
+    a_Normal = gl.getAttribLocation(gl.program, 'a_Normal');
+    if (a_Normal < 0) {
         console.log('Failed to get the storage location of a_Normal');
         return false;
     }
@@ -681,6 +730,12 @@ function connectVariablesToGLSL() {
     u_FragColor = gl.getUniformLocation(gl.program, 'u_FragColor');
     if (!u_FragColor) {
         console.log('Failed to get the storage location of u_FragColor');
+        return false;
+    }
+
+    u_lightPos = gl.getUniformLocation(gl.program, 'u_lightPos');
+    if (!u_lightPos) {
+        console.log('Failed to get the storage location of u_lightPos');
         return false;
     }
 
@@ -942,185 +997,9 @@ function applyMouseLookToCamera() {
     );
 }
 
-
 let g_uiOpen = false;
 let g_uiPage = 0;
 let g_uiMode = "start"; // "start" | "help" | "story"
-
-const UI_PAGES = {
-    start: [
-        {
-            title: "Simple Minecraft",
-            body:
-                `Welcome!
-Click Start to begin.
-
-Tip: Click the canvas to lock mouse.
-click ESC to unlock.`
-        }
-    ],
-    help: [
-        {
-            title: "How to Play",
-            body:
-                `Controls:
-                WASD = move
-                R = add block
-                F = remove block
-                P = save world
-                L = load world
-                1/2/3 = switch brush
-
-                Click canvas: lock mouse
-                ESC: unlock mouse
-                Press H: open/close this menu`
-        }
-    ],
-    story: [
-        {
-            title: "Story 1/3",
-            body:
-                `You wake up in a blocky world.
-A wall surrounds the land…`
-
-        },
-        {
-            title: "Story 2/3",
-            body:
-                `Your camera is your eyes:
-Click the canvas to lock the mouse and look around.\n Use Q/E to turn your view left/right as well.`
-        },
-        {
-            title: "Story 3/3",
-            body:
-                `Main Mission: Diamond Hunt 💎
-Blue diamond blocks are scattered across the ground.
-To collect one, just walk close to it.\n\nAfter collecting ${DIAMOND_GOAL}/${DIAMOND_GOAL}, find the croc and walk up to it to finish the quest.
-You’ll trigger a win animation — then you can keep exploring the world and play around with blocks!`
-        }
-    ]
-};
-UI_PAGES.win = [
-    {
-        title: "You Win!",
-        body: `You collected 8 diamonds and brought them to the croc.\n Task Completed! \n\nYou’re free to keep exploring — have fun!`
-
-    }
-];
-
-// ui 
-function uiInit() {
-    const overlay = document.getElementById("uiOverlay");
-    const title = document.getElementById("uiTitle");
-    const body = document.getElementById("uiBody");
-
-    const btnBack = document.getElementById("btnBack");
-    const btnNext = document.getElementById("btnNext");
-    const btnClose = document.getElementById("btnClose");
-    const btnHelp = document.getElementById("btnHelp");
-
-    btnBack.onclick = () => uiBack();
-    btnNext.onclick = () => uiNext();
-    btnClose.onclick = () => uiClose();
-
-    // clicking dark background closes
-    overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) uiClose();
-    });
-
-    // help button toggles help menu
-    btnHelp.onclick = () => {
-        if (g_uiOpen && g_uiMode === "help") uiClose();
-        else uiOpen("help", 0);
-    };
-
-    // Press "H" to open help menu
-    document.addEventListener("keydown", (e) => {
-        if (e.key.toLowerCase() === "h") {
-            if (g_uiOpen && g_uiMode === "help") uiClose();
-            else uiOpen("help", 0);
-        }
-    });
-
-    const btnReplay = document.getElementById("btnReplay");
-
-    btnReplay.onclick = () => {
-        // toggle story replay
-        if (g_uiOpen && g_uiMode === "story") uiClose();
-        else uiOpen("story", 0);
-    };
-
-    function render() {
-        const pages = UI_PAGES[g_uiMode];
-        const page = pages[g_uiPage];
-
-        title.textContent = page.title;
-        body.textContent = page.body;
-
-        // default
-        btnNext.style.display = "inline-block";
-        btnClose.style.display = "inline-block";
-
-        btnBack.style.display = (g_uiPage > 0) ? "inline-block" : "none";
-        btnNext.textContent = (g_uiPage < pages.length - 1) ? "Next" : "Start";
-
-        // In "help" page
-        if (g_uiMode === "help") {
-            btnBack.style.display = "none";
-            btnNext.style.display = "none";
-        } else if (g_uiMode === "story") {
-            btnClose.style.display = "none"; // hide the separate Close button
-            btnNext.style.display = "inline-block"; // keep Next
-            btnNext.textContent = (g_uiPage < pages.length - 1) ? "Next" : "Close";
-        } else if (g_uiMode === "win") {
-            btnBack.style.display = "none";
-            btnNext.style.display = "none";
-            btnClose.style.display = "inline-block";
-        }
-    }
-
-    window.uiOpen = function (mode, pageIndex = 0) {
-        g_uiOpen = true;
-        g_uiMode = mode;
-        g_uiPage = pageIndex;
-
-        overlay.classList.remove("hidden");
-        render();
-
-        // If menu opens, unlock mouse so user can click buttons
-        if (document.pointerLockElement === canvas) document.exitPointerLock();
-    };
-
-    window.uiClose = function () {
-        g_uiOpen = false;
-        overlay.classList.add("hidden");
-    };
-
-    window.uiNext = function () {
-        const pages = UI_PAGES[g_uiMode];
-
-        if (g_uiMode === "start") {
-            // Start menu: Next means go to story or close
-            uiOpen("story", 0);
-            return;
-        }
-
-        if (g_uiMode === "help") {
-            // help: Next on last page closes
-            if (g_uiPage >= pages.length - 1) { uiClose(); return; }
-        }
-
-        if (g_uiPage < pages.length - 1) g_uiPage++;
-        else uiClose();
-
-        render();
-    };
-
-    window.uiBack = function () {
-        if (g_uiPage > 0) g_uiPage--;
-        render();
-    };
-}
 
 // add my blocky animal to world, a simplifed version
 function drawCrocCube(mat, color) {
@@ -1513,4 +1392,22 @@ function initBrushSelect() {
         g_placeBrush = parseInt(s.value); // 1 or 2
         updateBrushHud();
     };
+}
+
+function drawTestSphere() {
+    if (!g_testSphere) return;
+
+    // obvious bright color
+    g_testSphere.color = [1.0, 0.2, 0.2, 1.0];   // red
+    g_testSphere.textureNum = -2;                 // solid color (no texture)
+
+    // place sphere in an open area
+    const wx = -2.5;
+    const wz = 1.8;
+    const wy = groundHeightAt(wx, wz) + 1.5;      // float above ground
+
+    g_testSphere.matrix.setIdentity();
+    g_testSphere.matrix.translate(wx, wy, wz);
+    g_testSphere.matrix.scale(1.2, 1.2, 1.2);     // make it big enough
+    g_testSphere.render();
 }
