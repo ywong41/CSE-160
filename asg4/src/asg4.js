@@ -11,6 +11,7 @@
 
 var VERTEX_SHADER = `
     precision mediump float;
+
     attribute vec3 a_Position;
     attribute vec2 a_UV;
     attribute vec3 a_Normal;
@@ -20,18 +21,25 @@ var VERTEX_SHADER = `
     varying vec3 v_WorldPos;
 
     uniform mat4 u_ModelMatrix;
+    uniform mat4 u_NormalMatrix;
     uniform mat4 u_ViewMatrix;
     uniform mat4 u_ProjectionMatrix;
     uniform mat4 u_GlobalRotateMatrix;
 
     void main() {
-    v_UV = a_UV;
-    vec4 worldPos = u_GlobalRotateMatrix * u_ModelMatrix * vec4(a_Position, 1.0);
-    v_WorldPos = worldPos.xyz;
-    gl_Position = u_ProjectionMatrix * u_ViewMatrix * worldPos;
+        v_UV = a_UV;
 
-    v_Normal = a_Normal;
-}`
+        // Final world position
+        vec4 worldPos = u_GlobalRotateMatrix * u_ModelMatrix * vec4(a_Position, 1.0);
+        v_WorldPos = worldPos.xyz;
+
+        // normal transform
+        mat3 nmat = mat3(u_GlobalRotateMatrix * u_NormalMatrix);
+        v_Normal = normalize(nmat * a_Normal);
+
+        gl_Position = u_ProjectionMatrix * u_ViewMatrix * worldPos;
+    }
+    `;
 
 
 var FRAGMENT_SHADER = `
@@ -49,7 +57,6 @@ var FRAGMENT_SHADER = `
     uniform sampler2D u_Sampler4;   // purple diamond texture
 
     uniform int u_whichTexture;
-
     uniform float u_texColorWeight;
 
     uniform vec3 u_CameraPos;
@@ -58,69 +65,90 @@ var FRAGMENT_SHADER = `
     uniform float u_FogFar;
     uniform int u_useFog;
     uniform vec3 u_lightPos;
+    uniform bool u_lightOn;
 
     void main() {
-    vec4 baseColor = u_FragColor;
-    vec4 outColor;
+        vec4 baseColor = u_FragColor;
+        vec4 outColor;
 
-    if(u_whichTexture == -3){
-        outColor = vec4((v_Normal + 1.0)/ 2.0, 1.0);    // use normal debug color
-    }else if (u_whichTexture == -2) {
-        outColor = baseColor;
-    }else if (u_whichTexture == -1) {
-        outColor = vec4(v_UV, 1.0, 1.0);
-    } else if (u_whichTexture == 0) {
-        vec4 texColor = texture2D(u_Sampler0, v_UV);
-        float t = clamp(u_texColorWeight, 0.0, 1.0);
-        outColor = mix(baseColor, texColor, t);
-    } else if (u_whichTexture == 1) {
-        vec4 texColor = texture2D(u_Sampler1, v_UV);
-        float t = clamp(u_texColorWeight, 0.0, 1.0);
-        outColor = mix(baseColor, texColor, t);
-    } else if (u_whichTexture == 2) {                 // diamond texture
-        vec4 texColor = texture2D(u_Sampler2, v_UV);
-        float t = clamp(u_texColorWeight, 0.0, 1.0);
-        outColor = mix(baseColor, texColor, t);
-    } else if (u_whichTexture == 3) {
-        vec4 texColor = texture2D(u_Sampler3, v_UV);
-        float t = clamp(u_texColorWeight, 0.0, 1.0);
-        outColor = mix(baseColor, texColor, t);
-    }else if (u_whichTexture == 4) {
-        vec4 texColor = texture2D(u_Sampler4, v_UV);
-        float t = clamp(u_texColorWeight, 0.0, 1.0);
-        outColor = mix(baseColor, texColor, t);
-    }else {
-        outColor = vec4(1.0, 0.2, 0.2, 1.0);
-    }
+        if(u_whichTexture == -3){
+            outColor = vec4((v_Normal + 1.0)/ 2.0, 1.0);    // use normal debug color
+        }else if (u_whichTexture == -2) {
+            outColor = baseColor;
+        }else if (u_whichTexture == -1) {
+            outColor = vec4(v_UV, 1.0, 1.0);
+        } else if (u_whichTexture == 0) {
+            vec4 texColor = texture2D(u_Sampler0, v_UV);
+            float t = clamp(u_texColorWeight, 0.0, 1.0);
+            outColor = mix(baseColor, texColor, t);
+        } else if (u_whichTexture == 1) {
+            vec4 texColor = texture2D(u_Sampler1, v_UV);
+            float t = clamp(u_texColorWeight, 0.0, 1.0);
+            outColor = mix(baseColor, texColor, t);
+        } else if (u_whichTexture == 2) {                 // diamond texture
+            vec4 texColor = texture2D(u_Sampler2, v_UV);
+            float t = clamp(u_texColorWeight, 0.0, 1.0);
+            outColor = mix(baseColor, texColor, t);
+        } else if (u_whichTexture == 3) {
+            vec4 texColor = texture2D(u_Sampler3, v_UV);
+            float t = clamp(u_texColorWeight, 0.0, 1.0);
+            outColor = mix(baseColor, texColor, t);
+        }else if (u_whichTexture == 4) {
+            vec4 texColor = texture2D(u_Sampler4, v_UV);
+            float t = clamp(u_texColorWeight, 0.0, 1.0);
+            outColor = mix(baseColor, texColor, t);
+        }else {
+            outColor = vec4(1.0, 0.2, 0.2, 1.0);
+        }
 
-    // FOG distance based
-    if (u_useFog == 1) {
-        float d = distance(u_CameraPos, v_WorldPos);
-        float fogT = clamp((d - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
-        outColor = mix(outColor, u_FogColor, fogT);
-    }
+        gl_FragColor = outColor;
 
-    gl_FragColor = outColor;
+        // Debug light distance colors
+        vec3 lightVector = u_lightPos - v_WorldPos;
+        float r = length(lightVector);
 
-    // Debug light distance colors
-    vec3 lightVector = v_WorldPos - u_lightPos;
-    float r = length(lightVector);
+        // if (r < 1.0) {
+        //     outColor = vec4(1.0, 0.0, 0.0, 1.0);   // red
+        // } else if (r < 2.0) {
+        //     outColor = vec4(0.0, 1.0, 0.0, 1.0);   // green
+        // }
 
-    if (r < 1.0) {
-        outColor = vec4(1.0, 0.0, 0.0, 1.0);   // red
-    } else if (r < 2.0) {
-        outColor = vec4(0.0, 1.0, 0.0, 1.0);   // green
-    }
+        float specular = 0.0;
+        vec3 diffuse = vec3(0.0);
+        vec3 ambient = outColor.rgb * 0.3;
+        
+        // N dot L
+        if(u_lightOn && u_whichTexture != -3){
+            vec3 L = normalize(lightVector);
+            vec3 N = normalize(v_Normal);
+            float ndotL = max(dot(N,L), 0.0);
 
-    // FOG distance based
-    if (u_useFog == 1) {
-        float d = distance(u_CameraPos, v_WorldPos);
-        float fogT = clamp((d - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
-        outColor = mix(outColor, u_FogColor, fogT);
-    }
+            // Reflection
+            vec3 R = reflect(-L, N);
 
-    gl_FragColor = outColor;
-}`
+            // eye
+            vec3 E = normalize(u_CameraPos - v_WorldPos);
+            // Specular
+            specular = pow(max(dot(E,R), 0.0), 10.0);
+            vec3 diffuse = outColor.rgb * ndotL;;
+
+        }
+            
+        if(u_lightOn){
+            if(u_whichTexture == 0){
+                outColor = vec4(specular + diffuse + ambient, outColor.a);
+            }else{
+                outColor = vec4(specular + ambient, outColor.a);
+            }
+        }
+
+        // FOG distance based
+        if (u_useFog == 1) {
+            float d = distance(u_CameraPos, v_WorldPos);
+            float fogT = clamp((d - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
+            outColor = mix(outColor, u_FogColor, fogT);
+        }
+    }`
 
 // Globals
 let canvas, gl;
@@ -131,13 +159,25 @@ let a_Position, a_UV, a_Normal;
 
 // button 
 let g_normalOn = false;
-let g_lightPos = [0,1,-2];
+let g_lightPos = [0, 1, -2];
+
+// light swing controls
+let g_lightBaseX = 0.0;      // center X position
+let g_lightSwingAmp = 1.0;
+let g_lightMoveOn = true;   // control light motions
+let g_lightOn = true;   // control shader lighting On/Off
+
+let g_yellowAnimation = false;
+let g_magentaAnimation = false;
+let g_yellowAngle = 0;
+let g_magentaAngle = 0;
 
 // Uniforms
 let u_FragColor, u_ModelMatrix, u_ViewMatrix, u_ProjectionMatrix, u_GlobalRotateMatrix, u_texColorWeight;
 let u_whichTexture, u_Sampler0;
 let u_Sampler1, u_Sampler2, u_Sampler3, u_Sampler4;
-let u_lightPos; 
+let u_lightPos;
+let u_lightOn;
 
 // Textures (stone, sky, diamond, wood, purple diamond)
 let g_texture0 = null, g_texture1 = null, g_texture2 = null, g_texture3 = null, g_texture4 = null;
@@ -348,29 +388,20 @@ function addActionsForHtmlUI() {
         applyMouseLookToCamera();
     });
 
-    document.getElementById('lightSlideX').addEventListener('mousemove', function(ev) { if(ev.buttons == 1) { g_lightPos[0] = this.value/100; renderAllShapes(); }});
-    document.getElementById('lightSlideY').addEventListener('mousemove', function(ev) { if(ev.buttons == 1) { g_lightPos[1] = this.value/100; renderAllShapes(); }});
-    document.getElementById('lightSlideZ').addEventListener('mousemove', function(ev) { if(ev.buttons == 1) { g_lightPos[2] = this.value/100; renderAllShapes(); }});
+    document.getElementById('lightSlideX').addEventListener('input', function (ev) { if (ev.buttons == 1) { g_lightPos[0] = this.value / 100; renderAllShapes(); } });
+    document.getElementById('lightSlideY').addEventListener('input', function (ev) { if (ev.buttons == 1) { g_lightPos[1] = this.value / 100; renderAllShapes(); } });
+    document.getElementById('lightSlideZ').addEventListener('input', function (ev) { if (ev.buttons == 1) { g_lightPos[2] = this.value / 100; renderAllShapes(); } });
+    document.getElementById('lightOnBtn').onclick = function () { g_lightOn = true; };
+    document.getElementById('lightOffBtn').onclick = function () { g_lightOn = false;};
+    document.getElementById('lightMoveOnBtn').onclick = function () { g_lightMoveOn = true; };
 
-    // document.getElementById('tail1Slide').addEventListener('input', function() { g_tail1Angle = parseFloat(this.value); renderScene(); });
-    // document.getElementById('tail2Slide').addEventListener('input', function() { g_tail2Angle = parseFloat(this.value); renderScene(); });
-    // document.getElementById('jawSlide').addEventListener('input', function() { g_jawAngle = parseFloat(this.value); renderScene(); });
-    // document.getElementById('thighSlide').addEventListener('input', function () { g_thigh = parseFloat(this.value); renderScene(); });
-    // document.getElementById('calfSlide').addEventListener('input', function () { g_calf = parseFloat(this.value); renderScene(); });
-    // document.getElementById('footSlide').addEventListener('input', function () { g_foot = parseFloat(this.value); renderScene(); });
+    document.getElementById('lightMoveOffBtn').onclick = function () {
+        g_lightMoveOn = false;
+    };
 
     // Button Events
     document.getElementById('normalOn').onclick = function () { g_normalOn = true; };
     document.getElementById('normalOff').onclick = function () { g_normalOn = false; };
-
-    // document.getElementById('tailOnButton').onclick = function() { g_tailAnimation  = true; };
-    // document.getElementById('tailOffButton').onclick = function() { g_tailAnimation  = false; };
-    // document.getElementById('jawOnButton').onclick = function() { g_jawAnimation = true; };
-    // document.getElementById('jawOffButton').onclick = function() { g_jawAnimation = false; };
-    // document.getElementById('walkOnButton').onclick  = function() { g_walkAnimation = true; };
-    // document.getElementById('walkOffButton').onclick = function() { g_walkAnimation = false; };
-    // document.getElementById("animateAllOn").onclick = function() { gAnimateAll = true; };
-    // document.getElementById("animateAllOff").onclick = function() { gAnimateAll = false; };
 }
 
 // loads textures
@@ -459,6 +490,9 @@ function tick() {
     // quest
     updateDiamondQuest();
 
+    // Update Animation angles
+    updateAnimationAngles();
+
     // day night fog
     const s = 0.5 + 0.5 * Math.sin(g_seconds * 0.15); // slow cycle 0..1
     const r = 0.25 + 0.45 * s;
@@ -477,6 +511,22 @@ function tick() {
     g_crocTail2 = 25 * Math.sin(g_seconds * 1.6 + Math.PI / 3);
     requestAnimationFrame(tick);
 }
+
+// Update the angles of everything if currently animated
+function updateAnimationAngles() {
+    if (g_yellowAnimation) {
+        g_yellowAngle = 45 * Math.sin(g_seconds);
+    }
+
+    if (g_magentaAnimation) {
+        g_magentaAngle = 45 * Math.sin(3 * g_seconds);
+    }
+    // move light when motion button is On
+    if (g_lightMoveOn) {
+        g_lightPos[0] = g_lightBaseX + g_lightSwingAmp * Math.cos(g_seconds);  // swing left right around centerX
+    }
+}
+
 let sky = null;
 function renderAllShapes() {
     gl.uniformMatrix4fv(u_ProjectionMatrix, false, g_camera.projectionMatrix.elements);
@@ -495,15 +545,20 @@ function renderAllShapes() {
         g_camera.eye.elements[2]
     );
 
+    // Pass light position to GLSL
     gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+    // Pass camera position to GLSL
+    gl.uniform3f(u_CameraPos, g_camera.eye.x, g_camera.eye.y, g_camera.eye.z);
+    // Pass the light status
+    gl.uniform1i(u_lightOn, g_lightOn ? 1 : 0);
 
     // draw light marker cube
     let light = new Cube();
     light.textureNum = -2;                 // solid color
-    light.color = [1.0, 1.0, 0.0, 1.0];    // yellow
+    light.color = [2.0, 2.0, 0.0, 1.0];    // yellow
     light.matrix.setIdentity();
     light.matrix.translate(g_lightPos[0], g_lightPos[1], g_lightPos[2]);
-    light.matrix.scale(0.15, 0.15, 0.15);
+    light.matrix.scale(-0.1, -0.1, -0.1);
     light.matrix.translate(-0.5, -0.5, -0.5); // center the cube on the light position
     light.renderFast();
 
@@ -739,6 +794,12 @@ function connectVariablesToGLSL() {
         return false;
     }
 
+    u_lightOn = gl.getUniformLocation(gl.program, 'u_lightOn');
+    if (!u_lightOn) {
+        console.log('Failed to get the storage location of u_lightOn');
+        return false;
+    }
+
     u_ModelMatrix = gl.getUniformLocation(gl.program, 'u_ModelMatrix');
     if (!u_ModelMatrix) {
         console.log('Failed to get the storage location of u_ModelMatrix');
@@ -753,8 +814,6 @@ function connectVariablesToGLSL() {
         console.log('Failed to get the storage location of u_GlobalRotateMatrix');
         return false;
     }
-
-
 
     u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
     u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
@@ -789,6 +848,7 @@ function connectVariablesToGLSL() {
     gl.uniform1f(u_FogNear, 8.0);
     gl.uniform1f(u_FogFar, 28.0);
     gl.uniform1i(u_useFog, 1);
+    gl.uniform1i(u_lightOn, 1);
 
     // default
     gl.uniform1f(u_texColorWeight, 0.0);
@@ -1393,14 +1453,18 @@ function initBrushSelect() {
         updateBrushHud();
     };
 }
-
+// Draw Sphere
 function drawTestSphere() {
     if (!g_testSphere) return;
 
     // obvious bright color
     g_testSphere.color = [1.0, 0.2, 0.2, 1.0];   // red
-    g_testSphere.textureNum = -2;                 // solid color (no texture)
+    g_testSphere.textureNum = -2;                 // solid color
 
+
+    if (g_normalOn) {
+        g_testSphere.textureNum = -3;
+    }
     // place sphere in an open area
     const wx = -2.5;
     const wz = 1.8;
@@ -1410,4 +1474,6 @@ function drawTestSphere() {
     g_testSphere.matrix.translate(wx, wy, wz);
     g_testSphere.matrix.scale(1.2, 1.2, 1.2);     // make it big enough
     g_testSphere.render();
+
+
 }
