@@ -1,10 +1,11 @@
 /**
- * Reference: I used ChatGPT as a learning and debugging assistant while building this project.
- * Specifically, I asked ChatGPT to guide me through camera math and help me understand the UI logic.
- * I also asked ChatGPT for guidance on creating a simple “air wall” boundary to make the world feel
- * more game-like. Moreover, I asked ChatGPT to brainstorm gameplay features and ways to improve
- * the atmosphere and visuals, which helped me implement features such as distance fog and a simple
- * day/night cycle. Also, I learned learned multiple ways to improve code efficiency; for example, 
+ * Reference: 
+ * I referenced my own code from asg3 and reuse the block world as the base for asg4.
+ * 
+ * I used ChatGPT as a learning and debugging assistant while building this project.
+ * Specifically, I asked ChatGPT to guide me through camera math and help me understand the lighting logic.
+ * 
+ * Also, I learned learned multiple ways to improve code efficiency; for example, 
  * reducing per-frame allocations by reusing matrices and objects.
  * Overall, code implementation and testing were done by me.
  */
@@ -66,6 +67,12 @@ var FRAGMENT_SHADER = `
     uniform int u_useFog;
     uniform vec3 u_lightPos;
     uniform bool u_lightOn;
+    uniform vec3 u_lightColor;
+
+    uniform bool u_spotOn;       // add spot light
+    uniform vec3 u_spotPos;
+    uniform vec3 u_spotDir;      // normalized
+    uniform float u_spotCutoff;   
 
     void main() {
         vec4 baseColor = u_FragColor;
@@ -101,11 +108,10 @@ var FRAGMENT_SHADER = `
             outColor = vec4(1.0, 0.2, 0.2, 1.0);
         }
 
-        gl_FragColor = outColor;
 
         // Debug light distance colors
-        vec3 lightVector = u_lightPos - v_WorldPos;
-        float r = length(lightVector);
+        // vec3 lightVector = u_lightPos - v_WorldPos;
+        // float r = length(lightVector);
 
         // if (r < 1.0) {
         //     outColor = vec4(1.0, 0.0, 0.0, 1.0);   // red
@@ -113,42 +119,50 @@ var FRAGMENT_SHADER = `
         //     outColor = vec4(0.0, 1.0, 0.0, 1.0);   // green
         // }
 
-        float specular = 0.0;
-        vec3 diffuse = vec3(0.0);
-        vec3 ambient = outColor.rgb * 0.3;
-        
         // N dot L
-        if(u_lightOn && u_whichTexture != -3){
-            vec3 L = normalize(lightVector);
+        // ---------- Lighting ----------
+        if ((u_lightOn || u_spotOn) && u_whichTexture != -3) {
+            vec3 baseRgb = outColor.rgb;
             vec3 N = normalize(v_Normal);
-            float ndotL = max(dot(N,L), 0.0);
-
-            // Reflection
-            vec3 R = reflect(-L, N);
-
-            // eye
             vec3 E = normalize(u_CameraPos - v_WorldPos);
-            // Specular
-            specular = pow(max(dot(E,R), 0.0), 10.0);
-            vec3 diffuse = outColor.rgb * ndotL;;
 
-        }
-            
-        if(u_lightOn){
-            if(u_whichTexture == 0){
-                outColor = vec4(specular + diffuse + ambient, outColor.a);
-            }else{
-                outColor = vec4(specular + ambient, outColor.a);
+            // Ambient once
+            vec3 total = baseRgb * 0.25;
+
+            // Point light
+            if (u_lightOn) {
+                vec3 L = normalize(u_lightPos - v_WorldPos);
+                float ndotL = max(dot(N, L), 0.0);
+
+                vec3 R = reflect(-L, N);
+                float spec = pow(max(dot(E, R), 0.0), 16.0);
+
+                total += baseRgb * ndotL * u_lightColor;
+                total += vec3(spec) * u_lightColor;
             }
-        }
 
-        // FOG distance based
-        if (u_useFog == 1) {
-            float d = distance(u_CameraPos, v_WorldPos);
-            float fogT = clamp((d - u_FogNear) / (u_FogFar - u_FogNear), 0.0, 1.0);
-            outColor = mix(outColor, u_FogColor, fogT);
+            // Spotlight (flashlight)
+            if (u_spotOn) {
+                vec3 Ls = normalize(u_spotPos - v_WorldPos);           // frag -> light
+                vec3 spotToFrag = normalize(v_WorldPos - u_spotPos);   // light -> frag
+                float theta = dot(normalize(u_spotDir), spotToFrag);
+
+                if (theta > u_spotCutoff) {
+                    float ndotLs = max(dot(N, Ls), 0.0);
+
+                    vec3 Rs = reflect(-Ls, N);
+                    float specS = pow(max(dot(E, Rs), 0.0), 16.0);
+
+                    float spotFactor = (theta - u_spotCutoff) / (1.0 - u_spotCutoff);
+                    spotFactor = clamp(spotFactor, 0.0, 1.0);
+
+                    total += (baseRgb * ndotLs + vec3(specS)) * spotFactor;
+                }
+            }
+            outColor = vec4(total, outColor.a);
         }
-    }`
+        gl_FragColor = outColor;
+}`
 
 // Globals
 let canvas, gl;
@@ -166,6 +180,12 @@ let g_lightBaseX = 0.0;      // center X position
 let g_lightSwingAmp = 1.0;
 let g_lightMoveOn = true;   // control light motions
 let g_lightOn = true;   // control shader lighting On/Off
+// global change light color
+let g_lightColor = [1.0, 1.0, 1.0];
+let g_lightCube = null;
+
+let g_spotOn = true;
+let g_spotCutoffDeg = 20;
 
 let g_yellowAnimation = false;
 let g_magentaAnimation = false;
@@ -173,17 +193,19 @@ let g_yellowAngle = 0;
 let g_magentaAngle = 0;
 
 // Uniforms
-let u_FragColor, u_ModelMatrix, u_ViewMatrix, u_ProjectionMatrix, u_GlobalRotateMatrix, u_texColorWeight;
+let u_FragColor, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjectionMatrix, u_GlobalRotateMatrix, u_texColorWeight;
 let u_whichTexture, u_Sampler0;
 let u_Sampler1, u_Sampler2, u_Sampler3, u_Sampler4;
 let u_lightPos;
 let u_lightOn;
+let u_lightColor;
+let u_spotOn;
+let u_spotPos;
+let u_spotDir;
+let u_spotCutoff;
 
 // Textures (stone, sky, diamond, wood, purple diamond)
 let g_texture0 = null, g_texture1 = null, g_texture2 = null, g_texture3 = null, g_texture4 = null;
-
-// fog globals
-let u_CameraPos, u_FogColor, u_FogNear, u_FogFar, u_useFog;
 
 // Camera
 let g_camera;
@@ -346,11 +368,19 @@ function main() {
         g_camera.up.elements[0], g_camera.up.elements[1], g_camera.up.elements[2]
     );
 
-
-
     g_testSphere = new Sphere();
 
     initMouseLookFromCamera();
+    uiInit();
+
+    // always show story when page loads
+    //uiOpen("story", 0);
+
+    if (!localStorage.getItem("seenIntro")) {
+        uiOpen("start", 0);
+        localStorage.setItem("seenIntro", "1");
+    }
+    
     initBrushSelect();
     updateBrushHud();
 
@@ -372,6 +402,8 @@ function main() {
     g_tempCube = new Cube();
 
     g_crocCube = new Cube();
+
+    g_lightCube = new Cube();
     initCrocMatrices();
 
     requestAnimationFrame(tick);
@@ -383,25 +415,50 @@ function addActionsForHtmlUI() {
     // Slider Events
     document.getElementById('angleSlide').addEventListener('input', function () {
         const deg = parseFloat(this.value);
-        g_targetYaw = deg * Math.PI / 180.0;   // world-space yaw
+        g_targetYaw = -deg * Math.PI / 180.0;   // world-space yaw
         g_yaw = g_targetYaw;
         applyMouseLookToCamera();
     });
 
-    document.getElementById('lightSlideX').addEventListener('input', function (ev) { if (ev.buttons == 1) { g_lightPos[0] = this.value / 100; renderAllShapes(); } });
-    document.getElementById('lightSlideY').addEventListener('input', function (ev) { if (ev.buttons == 1) { g_lightPos[1] = this.value / 100; renderAllShapes(); } });
-    document.getElementById('lightSlideZ').addEventListener('input', function (ev) { if (ev.buttons == 1) { g_lightPos[2] = this.value / 100; renderAllShapes(); } });
-    document.getElementById('lightOnBtn').onclick = function () { g_lightOn = true; };
-    document.getElementById('lightOffBtn').onclick = function () { g_lightOn = false;};
-    document.getElementById('lightMoveOnBtn').onclick = function () { g_lightMoveOn = true; };
+    document.getElementById('lightColorR').addEventListener('input', function () {
+        g_lightColor[0] = parseFloat(this.value) / 100.0;
+    });
+    document.getElementById('lightColorG').addEventListener('input', function () {
+        g_lightColor[1] = parseFloat(this.value) / 100.0;
+    });
+    document.getElementById('lightColorB').addEventListener('input', function () {
+        g_lightColor[2] = parseFloat(this.value) / 100.0;
+    });
+    document.getElementById('spotCutoffSlide').addEventListener('input', function () {
+        g_spotCutoffDeg = parseFloat(this.value);
+    });
 
-    document.getElementById('lightMoveOffBtn').onclick = function () {
-        g_lightMoveOn = false;
-    };
+    document.getElementById('lightSlideX').addEventListener('input', function () {
+        g_lightBaseX = parseFloat(this.value) / 100.0;
+        if (!g_lightMoveOn) g_lightPos[0] = g_lightBaseX;
+    });
+
+    document.getElementById('lightSlideY').addEventListener('input', function () {
+        g_lightPos[1] = parseFloat(this.value) / 100.0;
+    });
+
+    document.getElementById('lightSlideZ').addEventListener('input', function () {
+        g_lightPos[2] = parseFloat(this.value) / 100.0;
+    });
+
+    document.getElementById('lightSwingAmpSlide').addEventListener('input', function () {
+        g_lightSwingAmp = parseFloat(this.value) / 100.0;
+    });
 
     // Button Events
     document.getElementById('normalOn').onclick = function () { g_normalOn = true; };
     document.getElementById('normalOff').onclick = function () { g_normalOn = false; };
+    document.getElementById('lightOn').onclick = function () { g_lightOn = true; };
+    document.getElementById('lightOff').onclick = function () { g_lightOn = false; };
+    document.getElementById('lightMoveOn').onclick = function () { g_lightMoveOn = true; };
+    document.getElementById('lightMoveOff').onclick = function () { g_lightMoveOn = false; };
+    document.getElementById('spotOn').onclick = function () { g_spotOn = true; };
+    document.getElementById('spotOff').onclick = function () { g_spotOn = false; };
 }
 
 // loads textures
@@ -494,11 +551,11 @@ function tick() {
     updateAnimationAngles();
 
     // day night fog
-    const s = 0.5 + 0.5 * Math.sin(g_seconds * 0.15); // slow cycle 0..1
-    const r = 0.25 + 0.45 * s;
-    const g = 0.30 + 0.45 * s;
-    const b = 0.45 + 0.45 * s;
-    gl.uniform4f(u_FogColor, r, g, b, 1.0);
+    // const s = 0.5 + 0.5 * Math.sin(g_seconds * 0.15); // slow cycle 0..1
+    // const r = 0.25 + 0.45 * s;
+    // const g = 0.30 + 0.45 * s;
+    // const b = 0.45 + 0.45 * s;
+    // gl.uniform4f(u_FogColor, r, g, b, 1.0);
 
     renderAllShapes();
 
@@ -537,30 +594,45 @@ function renderAllShapes() {
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // camera pos for fog (once per frame)
+    // Pass light position to GLSL
+    gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+    // Pass camera position to GLSL
     gl.uniform3f(
         u_CameraPos,
         g_camera.eye.elements[0],
         g_camera.eye.elements[1],
         g_camera.eye.elements[2]
     );
+    // Pass light color to GLSL
+    gl.uniform3f(u_lightColor, g_lightColor[0], g_lightColor[1], g_lightColor[2]);
 
-    // Pass light position to GLSL
-    gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
-    // Pass camera position to GLSL
-    gl.uniform3f(u_CameraPos, g_camera.eye.x, g_camera.eye.y, g_camera.eye.z);
+    // spotlight
+    const ex = g_camera.eye.elements[0];
+    const ey = g_camera.eye.elements[1];
+    const ez = g_camera.eye.elements[2];
+
+    let dx = g_camera.at.elements[0] - ex;
+    let dy = g_camera.at.elements[1] - ey;
+    let dz = g_camera.at.elements[2] - ez;
+    const len = Math.hypot(dx, dy, dz) || 1.0;
+    dx /= len; dy /= len; dz /= len;
+
+    gl.uniform1i(u_spotOn, g_spotOn ? 1 : 0);
+    gl.uniform3f(u_spotPos, ex, ey, ez);
+    gl.uniform3f(u_spotDir, dx, dy, dz);
+    gl.uniform1f(u_spotCutoff, Math.cos(g_spotCutoffDeg * Math.PI / 180.0));
+
     // Pass the light status
     gl.uniform1i(u_lightOn, g_lightOn ? 1 : 0);
 
     // draw light marker cube
-    let light = new Cube();
-    light.textureNum = -2;                 // solid color
-    light.color = [2.0, 2.0, 0.0, 1.0];    // yellow
-    light.matrix.setIdentity();
-    light.matrix.translate(g_lightPos[0], g_lightPos[1], g_lightPos[2]);
-    light.matrix.scale(-0.1, -0.1, -0.1);
-    light.matrix.translate(-0.5, -0.5, -0.5); // center the cube on the light position
-    light.renderFast();
+    g_lightCube.textureNum = -2;    // solid color
+    g_lightCube.color = [2.0, 2.0, 0.0, 1.0];   // yellow
+    g_lightCube.matrix.setIdentity();
+    g_lightCube.matrix.translate(g_lightPos[0], g_lightPos[1], g_lightPos[2]);
+    g_lightCube.matrix.scale(-0.1, -0.1, -0.1);
+    g_lightCube.matrix.translate(-0.5, -0.5, -0.5);
+    g_lightCube.renderFast();
 
     // Sky (a big cube surrounding the world)
     if (!sky) sky = new Cube(); // big cube, creat once to help performance
@@ -574,7 +646,6 @@ function renderAllShapes() {
     //Texture + color mixed (weight 0.0 is solid blue, 1.0 is pure texture, 0.7 is blue-tinted texture)
     gl.uniform1f(u_texColorWeight, 0.7);  // 0.7 = 70% texture + 30% blue 
 
-    gl.uniform1i(u_useFog, 0);
     gl.depthMask(false);
     gl.disable(gl.CULL_FACE);
     gl.depthFunc(gl.LEQUAL);
@@ -582,7 +653,6 @@ function renderAllShapes() {
     gl.depthFunc(gl.LESS);
     gl.enable(gl.CULL_FACE);
     gl.depthMask(true);
-    gl.uniform1i(u_useFog, 1);
 
 
     // back to solid color for floor/diamonds unless textured
@@ -805,6 +875,13 @@ function connectVariablesToGLSL() {
         console.log('Failed to get the storage location of u_ModelMatrix');
         return false;
     }
+
+    u_NormalMatrix = gl.getUniformLocation(gl.program, 'u_NormalMatrix');
+    if (!u_NormalMatrix) {
+        console.log('Failed to get the storage location of u_NormalMatrix');
+        return false;
+    }
+
     u_ViewMatrix = gl.getUniformLocation(gl.program, 'u_ViewMatrix');
 
     u_ProjectionMatrix = gl.getUniformLocation(gl.program, 'u_ProjectionMatrix');
@@ -815,6 +892,12 @@ function connectVariablesToGLSL() {
         return false;
     }
 
+    u_lightColor = gl.getUniformLocation(gl.program, 'u_lightColor');
+    u_spotOn = gl.getUniformLocation(gl.program, 'u_spotOn');
+    u_spotPos = gl.getUniformLocation(gl.program, 'u_spotPos');
+    u_spotDir = gl.getUniformLocation(gl.program, 'u_spotDir');
+    u_spotCutoff = gl.getUniformLocation(gl.program, 'u_spotCutoff');
+
     u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
     u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
     u_Sampler1 = gl.getUniformLocation(gl.program, 'u_Sampler1');
@@ -824,11 +907,19 @@ function connectVariablesToGLSL() {
 
     const I = new Matrix4();
     gl.uniformMatrix4fv(u_ModelMatrix, false, I.elements);
+    gl.uniformMatrix4fv(u_NormalMatrix, false, I.elements);
     gl.uniformMatrix4fv(u_ViewMatrix, false, I.elements);
     gl.uniformMatrix4fv(u_ProjectionMatrix, false, I.elements);
     gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, I.elements);
     gl.uniform1i(u_whichTexture, -2);
     gl.uniform4f(u_FragColor, 1, 1, 1, 1);
+
+    gl.uniform3f(u_lightColor, 1.0, 1.0, 1.0);
+
+    gl.uniform1i(u_spotOn, 1);
+    gl.uniform3f(u_spotPos, 0.0, 1.0, 0.0);
+    gl.uniform3f(u_spotDir, 0.0, -1.0, 0.0);
+    gl.uniform1f(u_spotCutoff, Math.cos(g_spotCutoffDeg * Math.PI / 180.0));
 
     u_texColorWeight = gl.getUniformLocation(gl.program, 'u_texColorWeight');
     if (!u_texColorWeight) {
@@ -847,7 +938,7 @@ function connectVariablesToGLSL() {
     gl.uniform4f(u_FogColor, 0.6, 0.75, 0.9, 1.0); // light sky-ish fog
     gl.uniform1f(u_FogNear, 8.0);
     gl.uniform1f(u_FogFar, 28.0);
-    gl.uniform1i(u_useFog, 1);
+    gl.uniform1i(u_useFog, 0);
     gl.uniform1i(u_lightOn, 1);
 
     // default
@@ -1060,6 +1151,185 @@ function applyMouseLookToCamera() {
 let g_uiOpen = false;
 let g_uiPage = 0;
 let g_uiMode = "start"; // "start" | "help" | "story"
+
+const UI_PAGES = {
+    start: [
+        {
+            title: "Simple Minecraft",
+            body:
+`Welcome!
+Click Start to begin.
+
+Tip: Click the canvas to lock mouse.
+click ESC to unlock.`
+        }
+    ],
+    help: [
+        {
+            title: "How to Play",
+            body:
+`Controls:
+WASD = move
+R = add block
+F = remove block
+P = save world
+L = load world
+1/2/3 = switch brush
+
+Click canvas: lock mouse
+ESC: unlock mouse
+Press H: open/close this menu`
+        }
+    ],
+    story: [
+        {
+            title: "Story 1/3",
+            body:
+`You wake up in a blocky world.
+A wall surrounds the land…`
+        },
+        {
+            title: "Story 2/3",
+            body:
+`Your camera is your eyes:
+Click the canvas to lock the mouse and look around.
+Use Q/E to turn your view left/right as well.`
+        },
+        {
+            title: "Story 3/3",
+            body:
+`Main Mission: Diamond Hunt 💎
+Blue diamond blocks are scattered across the ground.
+To collect one, just walk close to it.
+
+After collecting ${DIAMOND_GOAL}/${DIAMOND_GOAL}, find the croc and walk up to it to finish the quest.
+You’ll trigger a win animation — then you can keep exploring the world and play around with blocks!`
+        }
+    ]
+};
+
+UI_PAGES.win = [
+    {
+        title: "You Win!",
+        body: `You collected 8 diamonds and brought them to the croc.
+Task Completed!
+
+You’re free to keep exploring — have fun!`
+    }
+];
+
+function uiInit() {
+    const overlay = document.getElementById("uiOverlay");
+    const title = document.getElementById("uiTitle");
+    const body = document.getElementById("uiBody");
+
+    const btnBack = document.getElementById("btnBack");
+    const btnNext = document.getElementById("btnNext");
+    const btnClose = document.getElementById("btnClose");
+    const btnHelp = document.getElementById("btnHelp");
+    const btnReplay = document.getElementById("btnReplay");
+
+    if (!overlay || !title || !body || !btnBack || !btnNext || !btnClose || !btnHelp) {
+        // if HTML doesn't include overlay yet, fail safely
+        return;
+    }
+
+    btnBack.onclick = () => uiBack();
+    btnNext.onclick = () => uiNext();
+    btnClose.onclick = () => uiClose();
+
+    // clicking dark background closes
+    overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) uiClose();
+    });
+
+    // help button toggles help menu
+    btnHelp.onclick = () => {
+        if (g_uiOpen && g_uiMode === "help") uiClose();
+        else uiOpen("help", 0);
+    };
+
+    // H key toggles help
+    document.addEventListener("keydown", (e) => {
+        if (e.key.toLowerCase() === "h") {
+            if (g_uiOpen && g_uiMode === "help") uiClose();
+            else uiOpen("help", 0);
+        }
+    });
+
+    if (btnReplay) {
+        btnReplay.onclick = () => {
+            if (g_uiOpen && g_uiMode === "story") uiClose();
+            else uiOpen("story", 0);
+        };
+    }
+
+    function render() {
+        const pages = UI_PAGES[g_uiMode];
+        const page = pages[g_uiPage];
+
+        title.textContent = page.title;
+        body.textContent = page.body;
+
+        btnNext.style.display = "inline-block";
+        btnClose.style.display = "inline-block";
+
+        btnBack.style.display = (g_uiPage > 0) ? "inline-block" : "none";
+        btnNext.textContent = (g_uiPage < pages.length - 1) ? "Next" : "Start";
+
+        if (g_uiMode === "help") {
+            btnBack.style.display = "none";
+            btnNext.style.display = "none";
+        } else if (g_uiMode === "story") {
+            btnClose.style.display = "none";
+            btnNext.style.display = "inline-block";
+            btnNext.textContent = (g_uiPage < pages.length - 1) ? "Next" : "Close";
+        } else if (g_uiMode === "win") {
+            btnBack.style.display = "none";
+            btnNext.style.display = "none";
+            btnClose.style.display = "inline-block";
+        }
+    }
+
+    window.uiOpen = function (mode, pageIndex = 0) {
+        g_uiOpen = true;
+        g_uiMode = mode;
+        g_uiPage = pageIndex;
+
+        overlay.classList.remove("hidden");
+        render();
+
+        if (document.pointerLockElement === canvas) document.exitPointerLock();
+    };
+
+    window.uiClose = function () {
+        g_uiOpen = false;
+        overlay.classList.add("hidden");
+    };
+
+    window.uiNext = function () {
+        const pages = UI_PAGES[g_uiMode];
+
+        if (g_uiMode === "start") {
+            uiOpen("story", 0);
+            return;
+        }
+
+        if (g_uiMode === "help") {
+            if (g_uiPage >= pages.length - 1) { uiClose(); return; }
+        }
+
+        if (g_uiPage < pages.length - 1) g_uiPage++;
+        else uiClose();
+
+        render();
+    };
+
+    window.uiBack = function () {
+        if (g_uiPage > 0) g_uiPage--;
+        render();
+    };
+}
 
 // add my blocky animal to world, a simplifed version
 function drawCrocCube(mat, color) {
