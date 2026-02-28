@@ -1,11 +1,15 @@
-const sin = Math.sin;
-const cos = Math.cos;
-
+function sin(x){
+    return Math.sin(x);
+} 
+function cos(x){
+    return Math.cos(x);
+} 
 class Sphere {
     constructor() {
         this.type = 'sphere';
         this.color = [1.0, 1.0, 1.0, 1.0];
         this.matrix = new Matrix4();
+        this.normalMatrix = new Matrix4();
         this.textureNum = -2;
         this.verts32 = new Float32Array([]);
     }
@@ -54,6 +58,11 @@ class Sphere {
                 v = v.concat(p3); uv = uv.concat(uv3);
 
                 gl.uniform4f(u_FragColor, 1, 0, 0, 1);
+
+                this.normalMatrix.setInverseOf(this.matrix);
+                this.normalMatrix.transpose();
+                gl.uniformMatrix4fv(u_NormalMatrix, false, this.normalMatrix.elements);
+
                 drawTriangle3DUVNormal(v, uv, v);
             }
         }
