@@ -141,8 +141,8 @@
             margin-top: 10px;
             padding: 10px 12px;
             border-radius: 10px;
-            background: #f5f5f5;
-            border: 1px solid #ddd;
+            background: #0473db49;
+            border: 1px solid #0473db49;
         }
 
         #controls p {
@@ -173,9 +173,13 @@
         <ul>
             <li>click <b>?</b> to open Help. Click <b>↻</b> to replay the story pages.</li>
             <li>Click canvas to rotate camera; press <b>ESC</b> to cancel mouse control.</li>
-            <li><b>Lighting (asg4):</b> Use <b>Light Shading On/Off</b>, <b>Light R/G/B sliders</b>, and <b>Spot
-                    On/Off</b> + <b>Spot Cutoff</b> to test grading features.</li>
-            <li><b>Normal Debug:</b> Use <b>Normal On/Off</b> to visualize normals.</li>
+
+
+            <li><b>Lighting (asg4):</b></li>
+            <li><b>Spotlight:</b> I implemented spotlight as a flashlight attached to the camera.
+                When Spot On is enabled, the spotlight position is the camera eye and
+                the direction is the camera view direction (at - eye).
+                Also, the cone width can be changed by the Spot Cutoff slider.</li>
         </ul>
     </div>
 
@@ -214,14 +218,11 @@
     <!-- light controls -->
     <div id="controls">
         <p>
-            <button id="lightOn">Light On</button>
-            <button id="lightOff">Light Off</button>
+            <button id="lightToggle">Light: ON</button>
+            <button id="normalToggle">Normal: OFF</button>
 
-            <button id="normalOn">Normal On</button>
-            <button id="normalOff">Normal Off</button>
+            <button id="lightMoveToggle">Light Move: ON</button>
 
-            <button id="lightMoveOn">Light Move On</button>
-            <button id="lightMoveOff">Light Move Off</button>
         </p>
 
         <p>
@@ -253,8 +254,7 @@
         <p>
             Spot light
             <input type="range" min="5" max="60" value="20" class="slider" id="spotCutoffSlide">
-            <button id="spotOn">Spot On</button>
-            <button id="spotOff">Spot Off</button>
+            <button id="spotToggle">Spot light: OFF</button>
         </p>
     </div>
     <br>

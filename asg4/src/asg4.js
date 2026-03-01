@@ -7,8 +7,10 @@
  * the lighting logic. From this, I also learned how to implement distance attenuation
  * for point/spot lights, so light gets weaker the farther it is, and that prevents the
  * whole scene from looking uniformly lit and makes the light behave more realistically.
- * Also, I learned learned multiple ways to improve code efficiency; for example, 
- * reducing per-frame allocations by reusing matrices and objects.
+ * Also, I learned multiple ways to improve code efficiency; for example, 
+ * reducing per-frame allocations by reusing matrices and objects. Moreover, I learned
+ * how to implement the spotlight that comes from the eye view, so the spot light looks like 
+ * a flash light. For instance, a bright cone hits the ground/walls wherever you look.
  * 
  * Overall, code implementation and testing were done by me.
  */
@@ -72,6 +74,7 @@ var FRAGMENT_SHADER = `
     uniform vec3 u_lightPos;
     uniform bool u_lightOn;
     uniform vec3 u_lightColor;
+    uniform bool u_LightingOn;
 
     uniform bool u_spotOn;       // add spot light
     uniform vec3 u_spotPos;
@@ -82,7 +85,7 @@ var FRAGMENT_SHADER = `
     void main() {
         vec4 baseColor = u_FragColor;
         vec4 outColor;
-
+        
         if(u_showNormals){
             outColor = vec4((v_Normal + 1.0)/ 2.0, 1.0);    // use normal debug color
         }else if (u_whichTexture == -2) {
@@ -112,8 +115,10 @@ var FRAGMENT_SHADER = `
         }else {
             outColor = vec4(1.0, 0.2, 0.2, 1.0);
         }
-
-
+        if (!u_LightingOn) {
+            gl_FragColor = outColor;
+            return;
+        }
         // Debug light distance colors
         // vec3 lightVector = u_lightPos - v_WorldPos;
         // float r = length(lightVector);
@@ -198,6 +203,9 @@ let g_lightBaseZ = -2.0;
 let g_lightSwingAmp = 1.0;
 let g_lightMoveOn = true;   // control light motions
 let g_lightOn = true;   // control shader lighting On/Off
+let g_lightingOn = true;
+let u_LightingOn = null;
+
 
 // global change light color
 let g_lightColor = [1.0, 1.0, 1.0];
@@ -483,14 +491,35 @@ function addActionsForHtmlUI() {
     // Button Events
 
     // Add a button to turn Normal Visualization on/off, toggle between actual color/texture
-    document.getElementById('normalOn').onclick = function () { g_normalOn = true; };
-    document.getElementById('normalOff').onclick = function () { g_normalOn = false; };
-    document.getElementById('lightOn').onclick = function () { g_lightOn = true; };
-    document.getElementById('lightOff').onclick = function () { g_lightOn = false; };
-    document.getElementById('lightMoveOn').onclick = function () { g_lightMoveOn = true; };
-    document.getElementById('lightMoveOff').onclick = function () { g_lightMoveOn = false; };
-    document.getElementById('spotOn').onclick = function () { g_spotOn = true; };
-    document.getElementById('spotOff').onclick = function () { g_spotOn = false; };
+    const lightBtn = document.getElementById('lightToggle');
+    lightBtn.innerText = `Light: ${g_lightOn ? "ON" : "OFF"}`;
+    lightBtn.onclick = () => {
+        g_lightOn = !g_lightOn;
+        lightBtn.innerText = `Light: ${g_lightOn ? "ON" : "OFF"}`;
+    };
+    // Normal toggle
+    const normalBtn = document.getElementById('normalToggle');
+    normalBtn.innerText = `Normal: ${g_normalOn ? "ON" : "OFF"}`;
+    normalBtn.onclick = () => {
+        g_normalOn = !g_normalOn;
+        normalBtn.innerText = `Normal: ${g_normalOn ? "ON" : "OFF"}`;
+    };
+
+    // Light move toggle
+    const moveBtn = document.getElementById('lightMoveToggle');
+    moveBtn.innerText = `Light Move: ${g_lightMoveOn ? "ON" : "OFF"}`;
+    moveBtn.onclick = () => {
+        g_lightMoveOn = !g_lightMoveOn;
+        moveBtn.innerText = `Light Move: ${g_lightMoveOn ? "ON" : "OFF"}`;
+    };
+
+    // Spot toggle
+    const spotBtn = document.getElementById('spotToggle');
+    spotBtn.innerText = `Spot light: ${g_spotOn ? "ON" : "OFF"}`;
+    spotBtn.onclick = () => {
+        g_spotOn = !g_spotOn;
+        spotBtn.innerText = `Spot light: ${g_spotOn ? "ON" : "OFF"}`;
+    };
 }
 
 // loads textures
@@ -615,6 +644,7 @@ function renderAllShapes() {
     gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.uniform1i(u_LightingOn, g_lightingOn ? 1 : 0);
     gl.uniform1i(u_showNormals, g_normalOn ? 1 : 0);
     // Pass light position to GLSL
     gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
@@ -934,7 +964,8 @@ function connectVariablesToGLSL() {
     u_spotDir = gl.getUniformLocation(gl.program, 'u_spotDir');
     u_spotCutoff = gl.getUniformLocation(gl.program, 'u_spotCutoff');
     u_spotExponent = gl.getUniformLocation(gl.program, "u_spotExponent");
-    gl.uniform1f(u_spotExponent, 8.0); 
+    gl.uniform1f(u_spotExponent, 8.0);
+    u_LightingOn = gl.getUniformLocation(gl.program, "u_LightingOn");
 
     u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
     u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
@@ -1789,7 +1820,7 @@ function drawTestSphere() {
     g_testSphere2.matrix.translate(x2, y2, z2);
     g_testSphere2.matrix.scale(0.3, 0.3, 0.3);
     g_testSphere2.render();
-    
+
     // sphere3
     g_testSphere3.color = [0.9, 0.9, 0.2, 1.0];
     g_testSphere3.textureNum = -2;
