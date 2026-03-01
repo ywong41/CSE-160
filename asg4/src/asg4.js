@@ -503,7 +503,7 @@ function addActionsForHtmlUI() {
         g_normalOn = !g_normalOn;
         normalBtn.innerText = `Normal: ${g_normalOn ? "ON" : "OFF"}`;
     };
-    
+
     const pointBtn = document.getElementById('pointToggle');
     pointBtn.innerText = `Point light: ${g_lightOn ? "ON" : "OFF"}`;
     pointBtn.onclick = () => {

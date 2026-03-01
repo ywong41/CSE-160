@@ -41,20 +41,16 @@ class Sphere {
                 // Triangle 1
                 var v = [];
                 var uv = [];
-
                 v = v.concat(p1); uv = uv.concat(uv1);
                 v = v.concat(p2); uv = uv.concat(uv2);
                 v = v.concat(p4); uv = uv.concat(uv4);
-
                 drawTriangle3DUVNormal(v, uv, v);
 
                 // Triangle 2
                 v = []; uv = [];
-
                 v = v.concat(p1); uv = uv.concat(uv1);
                 v = v.concat(p4); uv = uv.concat(uv4);
                 v = v.concat(p3); uv = uv.concat(uv3);
-
                 gl.uniformMatrix4fv(u_NormalMatrix, false, this.normalMatrix.elements);
                 drawTriangle3DUVNormal(v, uv, v);
             }

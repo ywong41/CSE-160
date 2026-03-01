@@ -45,7 +45,6 @@ class Model {
             } else if (tag === "vn") {
                 VN.push([+parts[1], +parts[2], +parts[3]]);
             } else if (tag === "f") {
-                // Assumes triangles (your Blender export uses Triangulated Mesh). :contentReference[oaicite:1]{index=1}
                 for (let i = 1; i <= 3; i++) {
                     const idx = parts[i].split("/");
                     const vi = parseInt(idx[0], 10);
