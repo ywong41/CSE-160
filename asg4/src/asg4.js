@@ -3,10 +3,13 @@
  * I referenced my own code from asg3 and reuse the block world as the base for asg4.
  * 
  * I used ChatGPT as a learning and debugging assistant while building this project.
- * Specifically, I asked ChatGPT to guide me through camera math and help me understand the lighting logic.
- * 
+ * Specifically, I asked ChatGPT to guide me through camera math and help me understand
+ * the lighting logic. From this, I also learned how to implement distance attenuation
+ * for point/spot lights, so light gets weaker the farther it is, and that prevents the
+ * whole scene from looking uniformly lit and makes the light behave more realistically.
  * Also, I learned learned multiple ways to improve code efficiency; for example, 
  * reducing per-frame allocations by reusing matrices and objects.
+ * 
  * Overall, code implementation and testing were done by me.
  */
 
@@ -42,7 +45,6 @@ var VERTEX_SHADER = `
     }
     `;
 
-
 var FRAGMENT_SHADER = `
     precision mediump float;
 
@@ -60,6 +62,8 @@ var FRAGMENT_SHADER = `
     uniform int u_whichTexture;
     uniform float u_texColorWeight;
 
+    uniform bool u_showNormals;
+
     uniform vec3 u_CameraPos;
     uniform vec4 u_FogColor;
     uniform float u_FogNear;
@@ -72,13 +76,14 @@ var FRAGMENT_SHADER = `
     uniform bool u_spotOn;       // add spot light
     uniform vec3 u_spotPos;
     uniform vec3 u_spotDir;      // normalized
-    uniform float u_spotCutoff;   
+    uniform float u_spotCutoff;
+    uniform float u_spotExponent; 
 
     void main() {
         vec4 baseColor = u_FragColor;
         vec4 outColor;
 
-        if(u_whichTexture == -3){
+        if(u_showNormals){
             outColor = vec4((v_Normal + 1.0)/ 2.0, 1.0);    // use normal debug color
         }else if (u_whichTexture == -2) {
             outColor = baseColor;
@@ -121,7 +126,7 @@ var FRAGMENT_SHADER = `
 
         // N dot L
         // ---------- Lighting ----------
-        if ((u_lightOn || u_spotOn) && u_whichTexture != -3) {
+        if (!u_showNormals && (u_lightOn || u_spotOn)) {
             vec3 baseRgb = outColor.rgb;
             vec3 N = normalize(v_Normal);
             vec3 E = normalize(u_CameraPos - v_WorldPos);
@@ -131,14 +136,20 @@ var FRAGMENT_SHADER = `
 
             // Point light
             if (u_lightOn) {
-                vec3 L = normalize(u_lightPos - v_WorldPos);
+                vec3 lightVec = u_lightPos - v_WorldPos;
+                float dist = length(lightVec);
+                vec3 L = lightVec / max(dist, 0.0001);
+
                 float ndotL = max(dot(N, L), 0.0);
 
                 vec3 R = reflect(-L, N);
                 float spec = pow(max(dot(E, R), 0.0), 16.0);
 
-                total += baseRgb * ndotL * u_lightColor;
-                total += vec3(spec) * u_lightColor;
+                // attenuation (tune these numbers)
+                float atten = 1.0 / (1.0 + 0.20*dist + 0.05*dist*dist);
+
+                total += baseRgb * ndotL * u_lightColor * atten;
+                total += vec3(spec) * u_lightColor * atten;
             }
 
             // Spotlight (flashlight)
@@ -155,8 +166,13 @@ var FRAGMENT_SHADER = `
 
                     float spotFactor = (theta - u_spotCutoff) / (1.0 - u_spotCutoff);
                     spotFactor = clamp(spotFactor, 0.0, 1.0);
+                    spotFactor = pow(spotFactor, u_spotExponent);   // makes edge smoother/stronger
 
-                    total += (baseRgb * ndotLs + vec3(specS)) * spotFactor;
+                    // attenuation for spotlight
+                    float ds = distance(u_spotPos, v_WorldPos);
+                    float attS = 1.0 / (1.0 + 0.15 * ds);
+
+                    total += (baseRgb * ndotLs + vec3(specS)) * spotFactor * u_lightColor * attS;  // point light and spot light both use u_lightColor
                 }
             }
             outColor = vec4(total, outColor.a);
@@ -166,7 +182,6 @@ var FRAGMENT_SHADER = `
 
 // Globals
 let canvas, gl;
-
 
 // Attributes
 let a_Position, a_UV, a_Normal;
@@ -180,11 +195,12 @@ let g_lightBaseX = 0.0;      // center X position
 let g_lightSwingAmp = 1.0;
 let g_lightMoveOn = true;   // control light motions
 let g_lightOn = true;   // control shader lighting On/Off
+
 // global change light color
 let g_lightColor = [1.0, 1.0, 1.0];
 let g_lightCube = null;
 
-let g_spotOn = true;
+let g_spotOn = false;
 let g_spotCutoffDeg = 20;
 
 let g_yellowAnimation = false;
@@ -192,10 +208,14 @@ let g_magentaAnimation = false;
 let g_yellowAngle = 0;
 let g_magentaAngle = 0;
 
+//obj model
+let g_objModel = null;
+
 // Uniforms
 let u_FragColor, u_ModelMatrix, u_NormalMatrix, u_ViewMatrix, u_ProjectionMatrix, u_GlobalRotateMatrix, u_texColorWeight;
 let u_whichTexture, u_Sampler0;
 let u_Sampler1, u_Sampler2, u_Sampler3, u_Sampler4;
+let u_showNormals;
 let u_lightPos;
 let u_lightOn;
 let u_lightColor;
@@ -380,7 +400,9 @@ function main() {
         uiOpen("start", 0);
         localStorage.setItem("seenIntro", "1");
     }
-    
+
+    Model.load("./Benchy.obj").then(m => { g_objModel = m; });
+
     initBrushSelect();
     updateBrushHud();
 
@@ -451,10 +473,12 @@ function addActionsForHtmlUI() {
     });
 
     // Button Events
+
+    // Add a button to turn Normal Visualization on/off, toggle between actual color/texture
     document.getElementById('normalOn').onclick = function () { g_normalOn = true; };
     document.getElementById('normalOff').onclick = function () { g_normalOn = false; };
     document.getElementById('lightOn').onclick = function () { g_lightOn = true; };
-    document.getElementById('lightOff').onclick = function () { g_lightOn = false; };
+    document.getElementById('lightOff').onclick = function () { g_lightOn = false; g_spotOn = false; }; // Light Off, also turn off the spotlight
     document.getElementById('lightMoveOn').onclick = function () { g_lightMoveOn = true; };
     document.getElementById('lightMoveOff').onclick = function () { g_lightMoveOn = false; };
     document.getElementById('spotOn').onclick = function () { g_spotOn = true; };
@@ -550,13 +574,6 @@ function tick() {
     // Update Animation angles
     updateAnimationAngles();
 
-    // day night fog
-    // const s = 0.5 + 0.5 * Math.sin(g_seconds * 0.15); // slow cycle 0..1
-    // const r = 0.25 + 0.45 * s;
-    // const g = 0.30 + 0.45 * s;
-    // const b = 0.45 + 0.45 * s;
-    // gl.uniform4f(u_FogColor, r, g, b, 1.0);
-
     renderAllShapes();
 
     // HUD
@@ -571,16 +588,13 @@ function tick() {
 
 // Update the angles of everything if currently animated
 function updateAnimationAngles() {
-    if (g_yellowAnimation) {
-        g_yellowAngle = 45 * Math.sin(g_seconds);
-    }
 
-    if (g_magentaAnimation) {
-        g_magentaAngle = 45 * Math.sin(3 * g_seconds);
-    }
     // move light when motion button is On
     if (g_lightMoveOn) {
-        g_lightPos[0] = g_lightBaseX + g_lightSwingAmp * Math.cos(g_seconds);  // swing left right around centerX
+        //g_lightPos[0] = g_lightBaseX + g_lightSwingAmp * Math.cos(g_seconds);  // swing left right around centerX
+
+        g_lightPos[0] = g_lightBaseX + (g_lightSwingAmp * 5) * Math.cos(g_seconds);
+        g_lightPos[2] = (g_lightSwingAmp * 5) * Math.sin(g_seconds);
     }
 }
 
@@ -593,7 +607,7 @@ function renderAllShapes() {
     gl.uniformMatrix4fv(u_GlobalRotateMatrix, false, globalRotMat.elements);
 
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
+    gl.uniform1i(u_showNormals, g_normalOn ? 1 : 0);
     // Pass light position to GLSL
     gl.uniform3f(u_lightPos, g_lightPos[0], g_lightPos[1], g_lightPos[2]);
     // Pass camera position to GLSL
@@ -687,6 +701,19 @@ function renderAllShapes() {
     drawDiamonds();
     renderCrocInWorld(2, -0.72, 2, 180);
     drawMap();
+
+    // obj model
+    if (g_objModel) {
+        g_objModel.textureNum = -2;
+        g_objModel.color = [1, 1, 1, 1];
+
+        g_objModel.matrix.setIdentity();
+        g_objModel.matrix.translate(-0.3, groundHeightAt(0, 0), 3);
+        g_objModel.matrix.rotate(-90, 1, 0, 0);
+        g_objModel.matrix.scale(0.15, 0.15, 0.15);
+
+        g_objModel.renderFast();
+    }
 }
 
 // walls from 2D array, height = g_map[z][x] (0..4)
@@ -891,12 +918,16 @@ function connectVariablesToGLSL() {
         console.log('Failed to get the storage location of u_GlobalRotateMatrix');
         return false;
     }
+    u_showNormals = gl.getUniformLocation(gl.program, "u_showNormals");
+    gl.uniform1i(u_showNormals, 0); // default off
 
     u_lightColor = gl.getUniformLocation(gl.program, 'u_lightColor');
     u_spotOn = gl.getUniformLocation(gl.program, 'u_spotOn');
     u_spotPos = gl.getUniformLocation(gl.program, 'u_spotPos');
     u_spotDir = gl.getUniformLocation(gl.program, 'u_spotDir');
     u_spotCutoff = gl.getUniformLocation(gl.program, 'u_spotCutoff');
+    u_spotExponent = gl.getUniformLocation(gl.program, "u_spotExponent");
+    gl.uniform1f(u_spotExponent, 8.0); 
 
     u_whichTexture = gl.getUniformLocation(gl.program, 'u_whichTexture');
     u_Sampler0 = gl.getUniformLocation(gl.program, 'u_Sampler0');
@@ -1157,7 +1188,7 @@ const UI_PAGES = {
         {
             title: "Simple Minecraft",
             body:
-`Welcome!
+                `Welcome!
 Click Start to begin.
 
 Tip: Click the canvas to lock mouse.
@@ -1168,7 +1199,7 @@ click ESC to unlock.`
         {
             title: "How to Play",
             body:
-`Controls:
+                `Controls:
 WASD = move
 R = add block
 F = remove block
@@ -1185,20 +1216,20 @@ Press H: open/close this menu`
         {
             title: "Story 1/3",
             body:
-`You wake up in a blocky world.
+                `You wake up in a blocky world.
 A wall surrounds the land…`
         },
         {
             title: "Story 2/3",
             body:
-`Your camera is your eyes:
+                `Your camera is your eyes:
 Click the canvas to lock the mouse and look around.
 Use Q/E to turn your view left/right as well.`
         },
         {
             title: "Story 3/3",
             body:
-`Main Mission: Diamond Hunt 💎
+                `Main Mission: Diamond Hunt 💎
 Blue diamond blocks are scattered across the ground.
 To collect one, just walk close to it.
 
@@ -1417,7 +1448,7 @@ function renderCrocInWorld(wx, wy, wz, yawDeg) {
 
     // base transform
     croc_base.setIdentity();
-    croc_base.translate(wx + 1.5, wy + 0.51, wz);
+    croc_base.translate(wx - 0.3, wy + 0.55, wz);
     croc_base.rotate(yawDeg, 0, 1, 0);
     croc_base.scale(1.2, 1.2, 1.2);
 
@@ -1677,6 +1708,7 @@ function drawGround() {
     }
 }
 
+// Given a world XZ position, compute the top-of-ground Y to make objects sit on the ground
 function groundHeightAt(wx, wz) {
     let y = BASE_GROUND_Y + BASE_GROUND_THICK;  // top of base
 
@@ -1731,18 +1763,14 @@ function drawTestSphere() {
     g_testSphere.color = [1.0, 0.2, 0.2, 1.0];   // red
     g_testSphere.textureNum = -2;                 // solid color
 
-
-    if (g_normalOn) {
-        g_testSphere.textureNum = -3;
-    }
     // place sphere in an open area
     const wx = -2.5;
-    const wz = 1.8;
-    const wy = groundHeightAt(wx, wz) + 1.5;      // float above ground
+    const wz = 2.8;
+    const wy = groundHeightAt(wx, wz) + 1;
 
     g_testSphere.matrix.setIdentity();
     g_testSphere.matrix.translate(wx, wy, wz);
-    g_testSphere.matrix.scale(1.2, 1.2, 1.2);     // make it big enough
+    g_testSphere.matrix.scale(1, 1, 1);     // make it big enough
     g_testSphere.render();
 
 
