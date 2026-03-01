@@ -254,7 +254,8 @@ const MAP_SIZE = 32;
 let g_map = [];
 
 let g_testSphere = null;
-
+let g_testSphere2;
+let g_testSphere3;
 // ==== Collision constants ====
 const PLAYER_RADIUS = 0.18;
 const PLAYER_EYE_Y = 0.30;  // keep camera above ground
@@ -390,6 +391,8 @@ function main() {
     );
 
     g_testSphere = new Sphere();
+    g_testSphere2 = new Sphere();
+    g_testSphere3 = new Sphere();
 
     initMouseLookFromCamera();
     uiInit();
@@ -479,7 +482,7 @@ function addActionsForHtmlUI() {
     document.getElementById('normalOn').onclick = function () { g_normalOn = true; };
     document.getElementById('normalOff').onclick = function () { g_normalOn = false; };
     document.getElementById('lightOn').onclick = function () { g_lightOn = true; };
-    document.getElementById('lightOff').onclick = function () { g_lightOn = false; g_spotOn = false; }; // Light Off, also turn off the spotlight
+    document.getElementById('lightOff').onclick = function () { g_lightOn = false; };
     document.getElementById('lightMoveOn').onclick = function () { g_lightMoveOn = true; };
     document.getElementById('lightMoveOff').onclick = function () { g_lightMoveOn = false; };
     document.getElementById('spotOn').onclick = function () { g_spotOn = true; };
@@ -697,7 +700,6 @@ function renderAllShapes() {
     drawGround();
 
     drawTestSphere();
-
     // map cubes 
     drawDiamonds();
     renderCrocInWorld(2, -0.72, 2, 180);
@@ -1771,8 +1773,26 @@ function drawTestSphere() {
 
     g_testSphere.matrix.setIdentity();
     g_testSphere.matrix.translate(wx, wy, wz);
-    g_testSphere.matrix.scale(1, 1, 1);     // make it big enough
+    g_testSphere.matrix.scale(1, 1, 1);
     g_testSphere.render();
 
-
+    // sphere 2
+    g_testSphere2.color = [0.537, 0.812, 0.941, 1.0];
+    g_testSphere2.textureNum = -2;
+    const x2 = 5.5, z2 = -2.8;
+    const y2 = groundHeightAt(x2, z2) + 0.3;
+    g_testSphere2.matrix.setIdentity();
+    g_testSphere2.matrix.translate(x2, y2, z2);
+    g_testSphere2.matrix.scale(0.3, 0.3, 0.3);
+    g_testSphere2.render();
+    
+    // sphere3
+    g_testSphere3.color = [0.9, 0.9, 0.2, 1.0];
+    g_testSphere3.textureNum = -2;
+    const x3 = 3.8, z3 = -2.5;
+    const y3 = groundHeightAt(x3, z3) + 0.8;
+    g_testSphere3.matrix.setIdentity();
+    g_testSphere3.matrix.translate(x3, y3, z3);
+    g_testSphere3.matrix.scale(0.8, 0.8, 0.8);
+    g_testSphere3.render();
 }

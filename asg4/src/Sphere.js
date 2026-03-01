@@ -20,6 +20,10 @@ class Sphere {
         // Pass the matrix to u_ModelMatrix attribute
         gl.uniformMatrix4fv(u_ModelMatrix, false, this.matrix.elements);
 
+        this.normalMatrix.setInverseOf(this.matrix);
+        this.normalMatrix.transpose();
+        gl.uniformMatrix4fv(u_NormalMatrix, false, this.normalMatrix.elements);
+
         var d = Math.PI / 25;
         var dd = Math.PI / 25;
 
@@ -34,7 +38,7 @@ class Sphere {
                 var uv2 = [(t + dd) / Math.PI, r / (2 * Math.PI)];
                 var uv3 = [t / Math.PI, (r + dd) / (2 * Math.PI)];
                 var uv4 = [(t + dd) / Math.PI, (r + dd) / (2 * Math.PI)];
-
+                // Triangle 1
                 var v = [];
                 var uv = [];
 
@@ -42,30 +46,25 @@ class Sphere {
                 v = v.concat(p2); uv = uv.concat(uv2);
                 v = v.concat(p4); uv = uv.concat(uv4);
 
-                gl.uniform4f(u_FragColor, 1, 1, 1, 1);
                 drawTriangle3DUVNormal(v, uv, v);
 
+                // Triangle 2
                 v = []; uv = [];
 
                 v = v.concat(p1); uv = uv.concat(uv1);
                 v = v.concat(p4); uv = uv.concat(uv4);
                 v = v.concat(p3); uv = uv.concat(uv3);
 
-                gl.uniform4f(u_FragColor, 1, 1, 1, 1);
-
-                this.normalMatrix.setInverseOf(this.matrix);
-                this.normalMatrix.transpose();
                 gl.uniformMatrix4fv(u_NormalMatrix, false, this.normalMatrix.elements);
-
                 drawTriangle3DUVNormal(v, uv, v);
             }
         }
     }
 }
 
-function sin(x){
+function sin(x) {
     return Math.sin(x);
-} 
-function cos(x){
+}
+function cos(x) {
     return Math.cos(x);
 } 
