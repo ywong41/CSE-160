@@ -193,6 +193,8 @@ let g_lightPos = [0, 1, -2];
 
 // light swing controls
 let g_lightBaseX = 0.0;      // center X position
+let g_lightBaseY = 1.0;
+let g_lightBaseZ = -2.0;
 let g_lightSwingAmp = 1.0;
 let g_lightMoveOn = true;   // control light motions
 let g_lightOn = true;   // control shader lighting On/Off
@@ -465,11 +467,13 @@ function addActionsForHtmlUI() {
     });
 
     document.getElementById('lightSlideY').addEventListener('input', function () {
-        g_lightPos[1] = parseFloat(this.value) / 100.0;
+        g_lightBaseY = parseFloat(this.value) / 100.0;
+        g_lightPos[1] = g_lightBaseY;
     });
 
     document.getElementById('lightSlideZ').addEventListener('input', function () {
-        g_lightPos[2] = parseFloat(this.value) / 100.0;
+        g_lightBaseZ = parseFloat(this.value) / 100.0;
+        if (!g_lightMoveOn) g_lightPos[2] = g_lightBaseZ;
     });
 
     document.getElementById('lightSwingAmpSlide').addEventListener('input', function () {
@@ -598,7 +602,7 @@ function updateAnimationAngles() {
         //g_lightPos[0] = g_lightBaseX + g_lightSwingAmp * Math.cos(g_seconds);  // swing left right around centerX
 
         g_lightPos[0] = g_lightBaseX + (g_lightSwingAmp * 5) * Math.cos(g_seconds);
-        g_lightPos[2] = (g_lightSwingAmp * 5) * Math.sin(g_seconds);
+        g_lightPos[2] = g_lightBaseZ + (g_lightSwingAmp * 5) * Math.sin(g_seconds);
     }
 }
 
@@ -648,7 +652,7 @@ function renderAllShapes() {
     g_lightCube.color = [2.0, 2.0, 0.0, 1.0];   // yellow
     g_lightCube.matrix.setIdentity();
     g_lightCube.matrix.translate(g_lightPos[0], g_lightPos[1], g_lightPos[2]);
-    g_lightCube.matrix.scale(-0.1, -0.1, -0.1);
+    g_lightCube.matrix.scale(0.1, 0.1, 0.1);
     g_lightCube.matrix.translate(-0.5, -0.5, -0.5);
     g_lightCube.renderFast();
 
