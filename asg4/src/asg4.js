@@ -137,7 +137,7 @@ var FRAGMENT_SHADER = `
             vec3 E = normalize(u_CameraPos - v_WorldPos);
 
             // Ambient once
-            vec3 total = baseRgb * 0.25;
+            vec3 total = baseRgb * 0.25 * u_lightColor;
 
             // Point light
             if (u_lightOn) {
@@ -490,12 +490,11 @@ function addActionsForHtmlUI() {
 
     // Button Events
 
-    // Add a button to turn Normal Visualization on/off, toggle between actual color/texture
     const lightBtn = document.getElementById('lightToggle');
-    lightBtn.innerText = `Light: ${g_lightOn ? "ON" : "OFF"}`;
+    lightBtn.innerText = `Lighting: ${g_lightingOn ? "ON" : "OFF"}`;
     lightBtn.onclick = () => {
-        g_lightOn = !g_lightOn;
-        lightBtn.innerText = `Light: ${g_lightOn ? "ON" : "OFF"}`;
+        g_lightingOn = !g_lightingOn;
+        lightBtn.innerText = `Lighting: ${g_lightingOn ? "ON" : "OFF"}`;
     };
     // Normal toggle
     const normalBtn = document.getElementById('normalToggle');
@@ -630,8 +629,8 @@ function updateAnimationAngles() {
     if (g_lightMoveOn) {
         //g_lightPos[0] = g_lightBaseX + g_lightSwingAmp * Math.cos(g_seconds);  // swing left right around centerX
 
-        g_lightPos[0] = g_lightBaseX + (g_lightSwingAmp * 5) * Math.cos(g_seconds);
-        g_lightPos[2] = g_lightBaseZ + (g_lightSwingAmp * 5) * Math.sin(g_seconds);
+        g_lightPos[0] = g_lightBaseX + (g_lightSwingAmp * 6.5) * Math.cos(g_seconds);
+        g_lightPos[2] = g_lightBaseZ + (g_lightSwingAmp * 6.5) * Math.sin(g_seconds);
     }
 }
 
