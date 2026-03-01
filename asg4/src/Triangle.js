@@ -43,8 +43,8 @@ function drawTriangle3D(verts3) {
 
   // fallback NORMAL
   const [nx, ny, nz] = faceNormalFromVerts3(verts3);
-gl.disableVertexAttribArray(a_Normal);
-gl.vertexAttrib3f(a_Normal, nx, ny, nz);
+  gl.disableVertexAttribArray(a_Normal);
+  gl.vertexAttrib3f(a_Normal, nx, ny, nz);
 
   gl.drawArrays(gl.TRIANGLES, 0, n);
 }
