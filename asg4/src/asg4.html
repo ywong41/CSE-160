@@ -161,6 +161,33 @@
         #notes {
             max-width: 820px;
         }
+
+        #controls button {
+            padding: 8px 12px;
+            border-radius: 999px;
+            border: 1px solid #26d6e2;
+            background: white;
+            color: #222;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            transition: transform 80ms ease, box-shadow 120ms ease, background 120ms ease;
+        }
+
+        #controls button:hover {
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+            transform: translateY(-1px);
+        }
+
+        #controls button:active {
+            transform: translateY(0px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.10);
+        }
+
+        #controls button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(145, 42, 218, 0.25), 0 2px 10px rgba(0, 0, 0, 0.10);
+        }
     </style>
 </head>
 
@@ -180,6 +207,9 @@
                 When Spot On is enabled, the spotlight position is the camera eye and
                 the direction is the camera view direction (at - eye).
                 Also, the cone width can be changed by the Spot Cutoff slider.</li>
+
+            <li><b>Light Motion Radius:</b> When Light Move On is enabled, the point light moves in a circular
+                path in the XZ plane. This slider controls the how far the light moves from the center.</li>
         </ul>
     </div>
 
@@ -240,7 +270,7 @@
         </p>
 
         <p>
-            Light Swing (X amplitude)
+            Light Motion Radius
             <input type="range" min="0" max="400" value="100" class="slider" id="lightSwingAmpSlide">
         </p>
 
