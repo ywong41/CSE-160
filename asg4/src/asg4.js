@@ -1,7 +1,6 @@
 /**
  * Reference: 
  * I referenced my own code from asg3 and reuse the block world as the base for asg4.
- * 
  * I used ChatGPT as a learning and debugging assistant while building this project.
  * Specifically, I asked ChatGPT to guide me through camera math and help me understand
  * the lighting logic. From this, I also learned how to implement distance attenuation
@@ -11,7 +10,6 @@
  * reducing per-frame allocations by reusing matrices and objects. Moreover, I learned
  * how to implement the spotlight that comes from the eye view, so the spot light looks like 
  * a flash light. For instance, a bright cone hits the ground/walls wherever you look.
- * 
  * Overall, code implementation and testing were done by me.
  */
 
@@ -131,13 +129,15 @@ var FRAGMENT_SHADER = `
 
         // N dot L
         // ---------- Lighting ----------
-        if (!u_showNormals && (u_lightOn || u_spotOn)) {
+        if (!u_showNormals) {
             vec3 baseRgb = outColor.rgb;
             vec3 N = normalize(v_Normal);
             vec3 E = normalize(u_CameraPos - v_WorldPos);
 
             // Ambient once
-            vec3 total = baseRgb * 0.25 * u_lightColor;
+            //vec3 total = baseRgb * 0.25 * u_lightColor;
+            float ambientStrength = 0.23;
+            vec3 total = baseRgb * ambientStrength;
 
             // Point light
             if (u_lightOn) {
@@ -502,6 +502,13 @@ function addActionsForHtmlUI() {
     normalBtn.onclick = () => {
         g_normalOn = !g_normalOn;
         normalBtn.innerText = `Normal: ${g_normalOn ? "ON" : "OFF"}`;
+    };
+    
+    const pointBtn = document.getElementById('pointToggle');
+    pointBtn.innerText = `Point light: ${g_lightOn ? "ON" : "OFF"}`;
+    pointBtn.onclick = () => {
+        g_lightOn = !g_lightOn;
+        pointBtn.innerText = `Point light: ${g_lightOn ? "ON" : "OFF"}`;
     };
 
     // Light move toggle
