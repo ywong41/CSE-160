@@ -137,7 +137,7 @@ var FRAGMENT_SHADER = `
             // Ambient once
             //vec3 total = baseRgb * 0.25 * u_lightColor;
             float ambientStrength = 0.23;
-            vec3 total = baseRgb * ambientStrength;
+            vec3 total = baseRgb * ambientStrength * u_lightColor;
 
             // Point light
             if (u_lightOn) {
