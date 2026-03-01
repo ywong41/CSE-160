@@ -180,6 +180,7 @@ var FRAGMENT_SHADER = `
         gl_FragColor = outColor;
 }`
 
+
 // Globals
 let canvas, gl;
 
