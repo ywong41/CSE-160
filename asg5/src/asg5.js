@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 
 function main() {
     const canvas = document.querySelector("#webgl");
@@ -19,33 +20,6 @@ function main() {
         500
     );
     camera.position.set(0, 7, 12);
-
-    // game
-    const game = { total: 8, collected: 0, gems: [] };
-    const taskBox = document.querySelector("#taskBox");
-    taskBox.textContent = `Collected Diamonds: ${game.collected}/${game.total}`;
-
-    function spawnGems() {
-        const geo = new THREE.OctahedronGeometry(0.35);
-        const mat = new THREE.MeshStandardMaterial({
-            color: 0x55ccff,
-            emissive: 0x112233,
-            roughness: 0.2,
-            metalness: 0.0,
-        });
-
-        for (let i = 0; i < game.total; i++) {
-            const gem = new THREE.Mesh(geo, mat);
-            // around temple (temple centered near z=-12)
-            gem.position.set((Math.random() - 0.5) * 10, 1.3, -12 + (Math.random() - 0.5) * 10);
-            gem.userData.baseY = gem.position.y;
-            gem.castShadow = true;
-            gem.receiveShadow = true;
-            scene.add(gem);
-            game.gems.push(gem);
-        }
-    }
-    spawnGems();
 
     // OrbitControls
     const controls = new OrbitControls(camera, canvas);
@@ -83,54 +57,73 @@ function main() {
     ground.receiveShadow = true;
     scene.add(ground);
 
+    // path in front of temple
+    const pathTex = new THREE.TextureLoader().load("../imgs/mossyGround.png"); // or stone/brick
+    pathTex.colorSpace = THREE.SRGBColorSpace;
+    pathTex.wrapS = pathTex.wrapT = THREE.RepeatWrapping;
+    pathTex.repeat.set(3, 15);  // more repeats along length
+
+    const path = new THREE.Mesh(
+        new THREE.PlaneGeometry(6, 28), // width, length
+        new THREE.MeshStandardMaterial({ map: pathTex, roughness: 1.0 })
+    );
+    path.rotation.x = -Math.PI / 2;
+    path.position.set(0, 0.01, 15); // y above ground avoid z-fighting
+    path.receiveShadow = true;
+    scene.add(path);
+
+    // braziers
+    const braziers = [];
+
     // ======= primary shapes =======
-    // test cube
-    scene.add(new THREE.AxesHelper(2));
-    const testCube = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshStandardMaterial({ color: 0xffffff })
-    );
-    testCube.position.set(0, 1, 0);
-    testCube.castShadow = true;
-    testCube.receiveShadow = true;
-    scene.add(testCube);
+    // // test cube
+    // scene.add(new THREE.AxesHelper(2));
+    // const testCube = new THREE.Mesh(
+    //     new THREE.BoxGeometry(1, 1, 1),
+    //     new THREE.MeshStandardMaterial({ color: 0xffffff })
+    // );
+    // testCube.position.set(0, 1, 0);
+    // testCube.castShadow = true;
+    // testCube.receiveShadow = true;
+    // scene.add(testCube);
 
-    // test sphere
-    const testSphere = new THREE.Mesh(
-        new THREE.SphereGeometry(0.5, 24, 16),
-        new THREE.MeshStandardMaterial({ color: 0x66ccff })
-    );
-    testSphere.position.set(2, 1, 0);
-    testSphere.castShadow = true;
-    testSphere.receiveShadow = true;
-    scene.add(testSphere);
+    // // test sphere
+    // const testSphere = new THREE.Mesh(
+    //     new THREE.SphereGeometry(0.5, 24, 16),
+    //     new THREE.MeshStandardMaterial({ color: 0x66ccff })
+    // );
+    // testSphere.position.set(2, 1, 0);
+    // testSphere.castShadow = true;
+    // testSphere.receiveShadow = true;
+    // scene.add(testSphere);
 
-    // test cylinder
-    const testCylinder = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.4, 0.4, 1.4, 24),
-        new THREE.MeshStandardMaterial({ color: 0xffaa66 })
-    );
-    testCylinder.position.set(-2, 0.7, 0);
-    testCylinder.castShadow = true;
-    testCylinder.receiveShadow = true;
-    scene.add(testCylinder);
+    // // test cylinder
+    // const testCylinder = new THREE.Mesh(
+    //     new THREE.CylinderGeometry(0.4, 0.4, 1.4, 24),
+    //     new THREE.MeshStandardMaterial({ color: 0xffaa66 })
+    // );
+    // testCylinder.position.set(-2, 0.7, 0);
+    // testCylinder.castShadow = true;
+    // testCylinder.receiveShadow = true;
+    // scene.add(testCylinder);
 
-    const torus = new THREE.Mesh(
-        new THREE.TorusGeometry(0.7, 0.18, 16, 64), // param: ring size, thickness
-        new THREE.MeshStandardMaterial({ color: 0x9b7cff, roughness: 0.4, metalness: 0.2 })
-    );
-    torus.position.set(0, 1.2, 2);   // in front of cube a bit
-    torus.castShadow = true;
-    torus.receiveShadow = true;
-    scene.add(torus);
+    // const torus = new THREE.Mesh(
+    //     new THREE.TorusGeometry(0.7, 0.18, 16, 64), // param: ring size, thickness
+    //     new THREE.MeshStandardMaterial({ color: 0x9b7cff, roughness: 0.4, metalness: 0.2 })
+    // );
+    // torus.position.set(0, 1.2, 2);   // in front of cube a bit
+    // torus.castShadow = true;
+    // torus.receiveShadow = true;
+    // scene.add(torus);
 
     // =======lights======
     // Ambient Light
-    scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+    const ambient = new THREE.AmbientLight(0xffffff, 0.2);
+    scene.add(ambient);
 
     // Directional Light
     const moon = new THREE.DirectionalLight(0xffffff, 1.2);
-    moon.position.set(10, 20, 10);
+    moon.position.set(10, 20, 10);  // light from front above temple
     moon.castShadow = true;
     moon.target.position.set(0, 5, -12);
     scene.add(moon.target);
@@ -142,7 +135,331 @@ function main() {
     torch.castShadow = true;
     scene.add(torch);
 
+    // ======== temple textures ========
+    const texLoader = new THREE.TextureLoader();
 
+    // 1) box texture for cubes/boxes/walls/roof
+    const boxTex = texLoader.load("../imgs/MayanStone.png");
+    boxTex.colorSpace = THREE.SRGBColorSpace;
+    boxTex.wrapS = boxTex.wrapT = THREE.RepeatWrapping;
+    boxTex.repeat.set(4, 2); // tweak if stretched
+    boxTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    // cylinder pillars
+    const cylTex = texLoader.load("../imgs/forest.png");
+    cylTex.colorSpace = THREE.SRGBColorSpace;
+    cylTex.wrapS = cylTex.wrapT = THREE.RepeatWrapping;
+    cylTex.repeat.set(1, 4); // taller tiling for pillars
+    cylTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+    // materials (light-reactive)
+    const wallMat = new THREE.MeshStandardMaterial({
+        map: boxTex,
+        roughness: 1.0,
+        metalness: 0.0,
+    });
+
+    const pillarMat = new THREE.MeshStandardMaterial({
+        map: cylTex,
+        roughness: 1.0,
+        metalness: 0.0,
+    });
+
+    function addTemple(scene) {
+        const temple = new THREE.Group();
+        temple.position.set(0, 0, -12);   // add temple into the scene
+        scene.add(temple);
+
+        // cube helper
+        function addBox(w, h, d, x, y, z, mat) {
+            const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+            m.position.set(x, y, z);
+            m.castShadow = true;
+            m.receiveShadow = true;
+            temple.add(m);
+            return m;
+        }
+
+        // cylinder helper
+        function addColumn(r, h, x, y, z, mat) {
+            const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 16), mat);
+            m.position.set(x, y, z);
+            m.castShadow = true;
+            m.receiveShadow = true;
+            temple.add(m);
+            return m;
+        }
+
+        // temple base
+        addBox(16, 1.6, 16, 0, 0.8, 0, wallMat);   // base height 1
+        addBox(12, 1.6, 12, 0, 2.4, 0, wallMat);   // base height 2
+        addBox(9, 1.2, 9, 0, 3.8, 0, wallMat);   // base height 3
+
+        // 7 stairs in front of temple
+        for (let i = 0; i < 7; i++) {
+            const stepW = 8 - i * 0.6;
+            const stepH = 0.3;
+            const stepD = 1.5;
+            const stepY = 0.15 + i * stepH;
+            const stepZ = 12.7 - i * 1.0;
+            addBox(stepW, stepH, stepD, 0, stepY, stepZ, wallMat);
+        }
+
+        // ===== Braziers next to the stairs =====
+        function addBrazier(x, z) {
+            const g = new THREE.Group();
+            g.position.set(x, 0, z); // temple-local
+
+            // stone materials
+            const stoneMat = wallMat;
+
+            // base pillar
+            const base = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.35, 0.45, 1.2, 18),
+                stoneMat
+            );
+            base.position.y = 0.6;
+            base.castShadow = true;
+            base.receiveShadow = true;
+            g.add(base);
+
+            // bowl (squashed sphere)
+            const bowl = new THREE.Mesh(
+                new THREE.SphereGeometry(0.55, 18, 12),
+                stoneMat
+            );
+            bowl.scale.y = 0.55;
+            bowl.position.y = 1.35;
+            bowl.castShadow = true;
+            bowl.receiveShadow = true;
+            g.add(bowl);
+
+            // rim (torus)
+            const rim = new THREE.Mesh(
+                new THREE.TorusGeometry(0.52, 0.08, 12, 24),
+                stoneMat
+            );
+            rim.rotation.x = Math.PI / 2;
+            rim.position.y = 1.35;
+            rim.castShadow = true;
+            rim.receiveShadow = true;
+            g.add(rim);
+
+            // flame
+            const flameMat = new THREE.MeshStandardMaterial({
+                color: 0xffaa55,
+                emissive: 0xff5500,
+                emissiveIntensity: 1.8,
+                roughness: 0.6,
+                metalness: 0.0,
+            });
+
+            const flame = new THREE.Mesh(
+                new THREE.SphereGeometry(0.18, 12, 10),
+                flameMat
+            );
+            flame.position.y = 1.55;
+            flame.castShadow = false;
+            g.add(flame);
+
+            // tiny point light
+            const light = new THREE.PointLight(0xffaa55, 1.2, 12);
+            light.position.set(0, 1.55, 0);
+            light.castShadow = true;
+            g.add(light);
+
+            temple.add(g);
+
+            braziers.push({
+                flame,
+                light,
+                baseY: flame.position.y,
+                baseI: light.intensity,
+                phase: Math.random() * Math.PI * 2,
+            });
+        }
+
+        addBrazier(-5.13, 11); // left of stairs
+        addBrazier(5.13, 11); // right of stairs
+
+        // ======= shrine door =======
+        // doorway open to interior space
+        const W = 6.5, H = 3.2, D = 6.5;
+        const cx = 0, cy = 5.6, cz = 0;
+        const tWall = 0.45; // thickness
+
+        // left, right walls
+        addBox(tWall, H, D, cx - (W / 2 - tWall / 2), cy, cz, wallMat);
+        addBox(tWall, H, D, cx + (W / 2 - tWall / 2), cy, cz, wallMat);
+
+        // back wall
+        addBox(W, H, tWall, cx, cy, cz - (D / 2 - tWall / 2), wallMat);
+
+        // roof and floor
+        addBox(W, tWall, D, cx, cy + (H / 2 - tWall / 2), cz, wallMat);
+        addBox(W, tWall, D, cx, cy - (H / 2 - tWall / 2), cz, wallMat);
+
+
+        const doorTex = texLoader.load("../imgs/door.jpg");
+        doorTex.colorSpace = THREE.SRGBColorSpace;
+        doorTex.wrapS = doorTex.wrapT = THREE.ClampToEdgeWrapping;
+        doorTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+        const doorMat = new THREE.MeshStandardMaterial({
+            map: doorTex,
+            roughness: 0.9,
+            metalness: 0.0,
+        });
+        // doorway position
+        const doorZ = 3.25 + 0.26;
+        //  solid door panel covers the opening
+        const doorPanel = addBox(
+            5.8,    // width 
+            3.2,    // height
+            0.5,    // thickness
+            0.0,    // x
+            5.2,    // y
+            doorZ + 0.08, // slightly forward
+            doorMat
+        );
+        doorPanel.userData.closedY = doorPanel.position.y;
+        temple.userData.doorPanel = doorPanel;
+
+        // aim target at the doorway opening
+        const doorAim = new THREE.Object3D();
+        doorAim.position.set(0, 5.2, doorZ);
+        temple.add(doorAim);
+        temple.userData.doorAim = doorAim;
+
+        //Roof tiers
+        addBox(8.0, 0.9, 8.0, 0, 7.3, 0, wallMat);
+        addBox(6.0, 0.85, 6.0, 0, 8.175, 0, wallMat);
+        addBox(4.5, 0.8, 4.5, 0, 9.0, 0, wallMat);
+
+        const colY = 5.2;
+        const colH = 3.4;
+        const r = 0.28;
+
+        // 4 corner columns around shrine
+        addColumn(r, colH, -3.2, colY, -3.2, pillarMat);
+        addColumn(r, colH, 3.2, colY, -3.2, pillarMat);
+        addColumn(r, colH, -3.2, colY, 3.2, pillarMat);
+        addColumn(r, colH, 3.2, colY, 3.2, pillarMat);
+
+        // ======= Treasure =======
+        const chest = new THREE.Group();
+
+        // goldish material for treasure chest
+        const goldMat = new THREE.MeshStandardMaterial({
+            color: 0xffd26a,
+            roughness: 0.35,
+            metalness: 0.85,
+            emissive: 0x332200,
+            emissiveIntensity: 0.2,
+        });
+
+        // chest base
+        const baseW = 1.4, baseH = 0.6, baseD = 0.9;
+        const base = new THREE.Mesh(new THREE.BoxGeometry(baseW, baseH, baseD), goldMat);
+        base.castShadow = true;
+        base.receiveShadow = true;
+        chest.add(base);
+
+        // lid with hinge pivot at back-top edge
+        const lidPivot = new THREE.Group();
+        lidPivot.position.set(0, baseH / 2, -baseD / 2); // hinge line
+        chest.add(lidPivot);
+
+        const lid = new THREE.Mesh(new THREE.BoxGeometry(baseW, 0.25, baseD), goldMat);
+        lid.position.set(0, 0.125, baseD / 2); // move forward from hinge
+        lid.castShadow = true;
+        lid.receiveShadow = true;
+        lidPivot.add(lid);
+
+        // place chest inside shrine
+        const floorTopY = cy - H / 2 + tWall; // top surface of floor slab
+        chest.position.set(0, floorTopY + baseH / 2, 1.2);
+        temple.add(chest);
+
+        // glow light
+        const treasureLight = new THREE.PointLight(0xffdd66, 0.0, 12);
+        treasureLight.position.copy(chest.position).add(new THREE.Vector3(0, 1.0, 0));
+        temple.add(treasureLight);
+
+        // save refs for win animation
+        temple.userData.treasure = { chest, lidPivot, light: treasureLight };
+
+        return temple;
+    }
+
+    const temple = addTemple(scene);
+    const doorPanel = temple.userData.doorPanel;
+    const doorAim = temple.userData.doorAim;
+    const treasure = temple.userData.treasure;
+    const templeBox = new THREE.Box3().setFromObject(temple).expandByScalar(1.0);
+
+    // Add custom 3D model
+    const gltfLoader = new GLTFLoader();
+    const floaters = []; // store models to animate
+
+    let cat = null;
+    let catShouldShow = false;
+    // ======= Dingus the cat =======
+    gltfLoader.load("../imgs/dingus_the_cat.glb", (gltf) => {
+        cat = gltf.scene;
+        cat.visible = false;
+        cat.scale.setScalar(0.25);
+        cat.rotation.y = 0;
+
+
+        cat.traverse((o) => {
+            if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
+        });
+
+        if (treasure) {
+            // cat position above chest
+            cat.position.set(
+                treasure.chest.position.x,
+                treasure.chest.position.y + 0.5,
+                treasure.chest.position.z
+            );
+        }
+
+        cat.userData.baseY = cat.position.y;
+
+        temple.add(cat);
+        if (catShouldShow) cat.visible = true;
+    }, undefined, (err) => console.error("Cat GLB load failed:", err));
+
+    // function to load glb object
+    function loadGLB(url, pos, scale = 1, diamondsOnTop = 0, floating = true) {
+        gltfLoader.load(url, (gltf) => {
+            const model = gltf.scene;
+            model.position.copy(pos);
+            model.scale.setScalar(scale);
+
+            model.traverse((obj) => {
+                if (obj.isMesh) { obj.castShadow = true; obj.receiveShadow = true; }
+            });
+
+            scene.add(model);
+
+            if (diamondsOnTop > 0) spawnDiamondsOnTopOfObject(model, diamondsOnTop);
+
+            if (floating) {
+                model.userData.baseY = pos.y;
+                model.userData.bobSpeed = 1 + Math.random() * 0.6;
+                model.userData.bobAmp = 0.2 + Math.random() * 0.25;
+                floaters.push(model);
+            }
+        });
+    }
+
+    loadGLB("../imgs/mediumIsland.glb", new THREE.Vector3(-24, 6.0, -24), 4, 1, true);
+    loadGLB("../imgs/largeIsland.glb", new THREE.Vector3(-12, 2.5, -12), 5, 1, true);
+    loadGLB("../imgs/Trees.glb", new THREE.Vector3(-18, 0.0, 18), 13.0, 0, false);
+    loadGLB("../imgs/Trees.glb", new THREE.Vector3(18, 0.0, 18), 13.0, 0, false);
+    loadGLB("../imgs/Roses.glb", new THREE.Vector3(20, 3.0, -20), 2, 0, false);
 
     // resize + animate
     function resizeIfNeeded() {
@@ -156,20 +473,277 @@ function main() {
         }
     }
 
-    function animate() {
+    // ======= Diamond Hunt =======
+    const TOTAL_DIAMONDS = 8;
+    let collected = 0;
+
+    const diamonds = [];
+    const bursts = [];
+
+    const taskBox = document.querySelector("#taskBox");
+    function updateHUD() {
+        if (taskBox) taskBox.textContent = `Collected Diamonds: ${collected}/${TOTAL_DIAMONDS}`;
+    }
+    updateHUD();
+
+    // click picking
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    // diamond look
+    const diamondGeo = new THREE.OctahedronGeometry(0.4);
+    const diamondMat = new THREE.MeshStandardMaterial({
+        color: 0x66e0ff,
+        emissive: 0x1177aa,
+        emissiveIntensity: 1.4,
+        roughness: 0.25,
+        metalness: 0.6,
+    });
+
+    function makeDiamond(pos) {
+        const d = new THREE.Mesh(diamondGeo, diamondMat.clone());
+        d.position.copy(pos);
+        d.castShadow = true;
+        d.userData.isDiamond = true;
+        d.userData.baseY = pos.y;
+        d.userData.spin = 0.6 + Math.random();
+        scene.add(d);
+        diamonds.push(d);
+    }
+
+    // add particle burst to make it more game like
+    function spawnBurst(worldPos) {
+        const group = new THREE.Group();
+        group.position.copy(worldPos);
+
+        const particleGeo = new THREE.SphereGeometry(0.06, 8, 8);
+        for (let i = 0; i < 20; i++) {
+            const p = new THREE.Mesh(
+                particleGeo,
+                new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 1 })
+            );
+
+            const vel = new THREE.Vector3(
+                (Math.random() - 0.5),
+                Math.random() * 0.8 + 0.2,
+                (Math.random() - 0.5)
+            ).normalize().multiplyScalar(3 + Math.random() * 3);
+
+            group.add(p);
+            bursts.push({ mesh: p, vel, life: 0.6 });
+        }
+
+        scene.add(group);
+        // store group on each particle so we can remove later
+        for (const b of bursts) if (!b.group) b.group = group;
+    }
+
+    // WIN spotlight
+    let won = false;
+    let doorOpenT = 0;
+
+    // win light var
+    let winLightT = 0;
+    let winLights = null;
+
+    function onWin() {
+        if (won) return;
+        won = true;
+
+        catShouldShow = true;
+        if (cat) cat.visible = true;
+        if (treasure) {
+            treasure.light.intensity = 3.5; // glow ON
+        }
+
+        // make torch brighter
+        torch.intensity = 5.0;
+
+        // update HUD
+        if (taskBox) taskBox.textContent = "Collected Diamonds: 8/8 | Temple Unlocked, prize reached!";
+
+        // fireworks bursts above the temple
+        for (let i = 0; i < 6; i++) {
+            spawnBurst(new THREE.Vector3(
+                (Math.random() - 0.5) * 6,
+                10 + Math.random() * 4,
+                -12 + (Math.random() - 0.5) * 6
+            ));
+        }
+
+        // start door opening animation
+        doorOpenT = 0;
+
+        // ===== RGB -> WHITE victory spotlight =====
+        if (!winLights) {
+            const target = doorAim;
+
+            function makeSpot(hex, pos) {
+                const s = new THREE.SpotLight(hex, 0, 220, Math.PI / 6, 0.8, 2);
+                s.position.copy(pos);
+                s.castShadow = true;
+                s.target = target;
+                scene.add(s);
+                return s;
+            }
+
+            const rgb = [
+                makeSpot(0xff0000, new THREE.Vector3(-14, 18, 16)),
+                makeSpot(0x00ff00, new THREE.Vector3(0, 22, 18)),
+                makeSpot(0x0000ff, new THREE.Vector3(14, 18, 16)),
+            ];
+
+            const white = new THREE.SpotLight(0xffffff, 0, 260, Math.PI / 4, 1.0, 2);
+            white.position.set(0, 26, 22);
+            white.castShadow = true;
+            white.target = target;
+            scene.add(white);
+
+            winLights = { rgb, white, target };
+        }
+
+        winLightT = 0;
+    }
+
+    // diamond spawn on ground
+    function spawnDiamondOnGround(areaHalf = 25) {
+        for (let tries = 0; tries < 200; tries++) {
+            const x = Math.random() * areaHalf;
+            const z = Math.random() * areaHalf;
+            const pos = new THREE.Vector3(x, 1.2, z);
+
+            makeDiamond(pos);
+            return true;
+        }
+        return false;
+    }
+
+    // spawn diamonds on floating island
+    function spawnDiamondsOnTopOfObject(obj, count = 1) {
+        const box = new THREE.Box3().setFromObject(obj);
+
+        for (let k = 0; k < count; k++) {
+            for (let tries = 0; tries < 200; tries++) {
+                const x = THREE.MathUtils.lerp(box.min.x, box.max.x, Math.random());
+                const z = THREE.MathUtils.lerp(box.min.z, box.max.z, Math.random());
+                const y = box.max.y + 0.8; // float above top
+                const pos = new THREE.Vector3(x, y, z);
+
+                if (templeBox.containsPoint(pos)) continue;
+
+                makeDiamond(pos);
+                break;
+            }
+        }
+    }
+
+    // spawn 6 diamond on ground
+    for (let i = 0; i < 6; i++) spawnDiamondOnGround();
+
+    function animate(time) {
         requestAnimationFrame(animate);
         resizeIfNeeded();
 
-        // primary shape rotation
-        testCube.rotation.y += 0.01;
-        testSphere.rotation.z += 0.01;
-        testCylinder.rotation.x -= 0.01;
-        torus.rotation.x += 0.01;
-        torus.rotation.y += 0.02;
+        const t = time * 0.001;
+
+        // float animation
+        for (const m of floaters) {
+            m.position.y = m.userData.baseY + Math.sin(t * m.userData.bobSpeed) * m.userData.bobAmp;
+            m.rotation.y += 0.003; // slow spin
+        }
+
+        // diamonds spin + bob
+        for (const d of diamonds) {
+            d.rotation.y += d.userData.spin * 0.02;
+            d.position.y = d.userData.baseY + Math.sin(t * 3.0 + d.id) * 0.25;
+        }
+
+        // particle bursts
+        for (let i = bursts.length - 1; i >= 0; i--) {
+            const b = bursts[i];
+            b.life -= 1 / 60;
+            b.mesh.position.addScaledVector(b.vel, 1 / 60);
+            b.vel.y -= 6.0 * (1 / 60);
+            b.mesh.material.opacity = Math.max(0, b.life / 0.6);
+
+            if (b.life <= 0) {
+                scene.remove(b.group);
+                bursts.splice(i, 1);
+            }
+        }
+
+        // win scene animation
+        if (won && doorPanel) {
+            doorOpenT = Math.min(1, doorOpenT + 0.015);
+            const lift = doorOpenT * 6.0; // higher lift so it clears the opening
+            doorPanel.position.y = doorPanel.userData.closedY + lift;
+        }
+
+        if (won && treasure) {
+            // open chest lid as the door opens
+            treasure.lidPivot.rotation.x = -doorOpenT * (Math.PI / 1.8);
+        }
+
+        if (won && cat) {
+            cat.position.y = cat.userData.baseY + Math.sin(t * 2.5) * 0.13;
+            cat.rotation.y += 0.25; // spins around Y
+
+        }
+
+        if (won && winLights) {
+            winLightT = Math.min(1, winLightT + 0.02);
+
+            const pulse = 0.5 + 0.5 * Math.sin(t * 4.0);
+            const rgbStrength = 1 - winLightT;
+
+            winLights.rgb[0].intensity = 30 * rgbStrength * pulse;
+            winLights.rgb[1].intensity = 30 * rgbStrength * pulse;
+            winLights.rgb[2].intensity = 30 * rgbStrength * pulse;
+
+            winLights.white.intensity = 50 * winLightT;
+            winLights.white.angle = THREE.MathUtils.lerp(Math.PI / 4, Math.PI / 20, winLightT);
+            winLights.white.penumbra = THREE.MathUtils.lerp(1.0, 0.2, winLightT);
+
+            // dim normal scene lights so the effect stands out
+            moon.intensity = THREE.MathUtils.lerp(1.2, 0.25, winLightT);
+            ambient.intensity = THREE.MathUtils.lerp(0.2, 0.05, winLightT);
+        }
 
         renderer.render(scene, camera);
     }
-    animate();
+    requestAnimationFrame(animate);
+
+
+
+    function collectDiamond(d) {
+        if (!d || d.userData.collected) return;
+        d.userData.collected = true;
+
+        spawnBurst(d.position);
+
+        scene.remove(d);
+        const idx = diamonds.indexOf(d);
+        if (idx >= 0) diamonds.splice(idx, 1);
+
+        collected++;
+        updateHUD();
+
+        if (collected >= TOTAL_DIAMONDS && !won) onWin();
+    }
+
+    // click to collect diamond
+    canvas.addEventListener("pointerdown", (e) => {
+        const rect = canvas.getBoundingClientRect();
+        mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+        raycaster.setFromCamera(mouse, camera);
+        const hits = raycaster.intersectObjects(diamonds, false);
+        if (!hits.length) return;
+
+        collectDiamond(hits[0].object);
+    });
+
 }
 
 main();
