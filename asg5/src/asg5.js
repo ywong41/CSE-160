@@ -763,7 +763,7 @@ function main() {
 
         if (won && cat) {
             cat.position.y = cat.userData.baseY + Math.sin(t * 2.5) * 0.13;
-            cat.rotation.y += 0.55; // spins around Y
+            cat.rotation.y += 0.25; // spins around Y
 
         }
 
