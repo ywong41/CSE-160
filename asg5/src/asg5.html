@@ -15,7 +15,7 @@
     </script>
 
     <script type="module" src="./asg5.js"></script>
-    
+
     <style>
         body {
             font-family: system-ui, Arial, sans-serif;
@@ -30,7 +30,6 @@
         #webgl {
             display: block;
         }
-
 
         /* ===== HUDs ===== */
         #taskBox {
@@ -47,7 +46,6 @@
             pointer-events: none;
         }
 
-
         #hud {
             position: absolute;
             left: 12px;
@@ -61,7 +59,6 @@
             line-height: 1.3;
             pointer-events: none;
         }
-
     </style>
 </head>
 
@@ -74,11 +71,21 @@
         <ul>
             <li>Use mouse orbit controls to navigate.</li>
             <li>Click diamonds to collect them and unlock the temple.</li>
-
-            <p> Suggested “wow” points:</p>
-            <li>Diamond hunt mini game: click diamonds to collect, each pickup triggers a particle burst to make it more game-like</li>
-            <p>Hope you enjoy!</p>
         </ul>
+        <p> Suggested “wow” points:</p>
+        <ul>
+            <li><b>Diamond hunt mini game</b>: Players can click to collect 8 diamonds placed around the world in order
+                to unlock the temple.</li>
+            <li><b>Particle and visual effects</b>: Collecting a diamond triggers a burst effect, and the braziers
+                continuously emit animated ember particles.</li>
+            <li><b>Interactive audio</b>: Sound effects play when diamonds are collected, when the temple door unlocks,
+                and when the cat is clicked.</li>
+            <li><b>Temple unlock sequence</b>: After all diamonds are collected, the temple door opens, the chest lid
+                opens, and the treasure begins to glow.</li>
+            <li><b>Victory scene</b>: The project includes a victory camera movement and spotlight sequence to highlight
+                the victory scene.</li>
+        </ul>
+        <p>Hope you enjoy!</p>
     </div>
 
     <div id="gameWrap">
@@ -91,7 +98,7 @@
 
         <div id="hud">
             <div><b>Mouse</b>: Orbit/rotate (drag) | <b>Scroll</b>: zoom | <b>Right-drag</b>: pan</div>
-            <div><b>Click</b> diamonds to collect • Unlock the shrine when you reach 8/8</div>
+            <div><b>Click</b> diamonds to collect • Unlock the Temple door when you reach 8/8</div>
         </div>
     </div>
     <br>

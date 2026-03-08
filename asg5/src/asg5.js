@@ -21,10 +21,23 @@ function main() {
     );
     camera.position.set(0, 7, 12);
 
-    // OrbitControls
+    // ======= Camera controls =======
     const controls = new OrbitControls(camera, canvas);
     controls.target.set(0, 5, -12);
     controls.update();
+
+    // add audio object 
+    const gemSound = new Audio("../audio/gem.mp3");
+    gemSound.volume = 0.5;
+
+    const doorSound = new Audio("../audio/doorOpen.mp3");
+    doorSound.volume = 0.6;
+
+    const catSound = new Audio("../audio/cat.mp3");
+    catSound.volume = 0.6;
+    catSound.preload = "auto";
+
+    let catSoundTimer = null;
 
     // implement skybox with cubemap
     {
@@ -75,55 +88,14 @@ function main() {
     // braziers
     const braziers = [];
 
-    // ======= primary shapes =======
-    // // test cube
-    // scene.add(new THREE.AxesHelper(2));
-    // const testCube = new THREE.Mesh(
-    //     new THREE.BoxGeometry(1, 1, 1),
-    //     new THREE.MeshStandardMaterial({ color: 0xffffff })
-    // );
-    // testCube.position.set(0, 1, 0);
-    // testCube.castShadow = true;
-    // testCube.receiveShadow = true;
-    // scene.add(testCube);
-
-    // // test sphere
-    // const testSphere = new THREE.Mesh(
-    //     new THREE.SphereGeometry(0.5, 24, 16),
-    //     new THREE.MeshStandardMaterial({ color: 0x66ccff })
-    // );
-    // testSphere.position.set(2, 1, 0);
-    // testSphere.castShadow = true;
-    // testSphere.receiveShadow = true;
-    // scene.add(testSphere);
-
-    // // test cylinder
-    // const testCylinder = new THREE.Mesh(
-    //     new THREE.CylinderGeometry(0.4, 0.4, 1.4, 24),
-    //     new THREE.MeshStandardMaterial({ color: 0xffaa66 })
-    // );
-    // testCylinder.position.set(-2, 0.7, 0);
-    // testCylinder.castShadow = true;
-    // testCylinder.receiveShadow = true;
-    // scene.add(testCylinder);
-
-    // const torus = new THREE.Mesh(
-    //     new THREE.TorusGeometry(0.7, 0.18, 16, 64), // param: ring size, thickness
-    //     new THREE.MeshStandardMaterial({ color: 0x9b7cff, roughness: 0.4, metalness: 0.2 })
-    // );
-    // torus.position.set(0, 1.2, 2);   // in front of cube a bit
-    // torus.castShadow = true;
-    // torus.receiveShadow = true;
-    // scene.add(torus);
-
-    // =======lights======
+    // ======= Light Sources =======
     // Ambient Light
     const ambient = new THREE.AmbientLight(0xffffff, 0.2);
     scene.add(ambient);
 
     // Directional Light
     const moon = new THREE.DirectionalLight(0xffffff, 1.2);
-    moon.position.set(10, 20, 10);  // light from front above temple
+    moon.position.set(10, 20, 10);  // light should come from the front, above the temple
     moon.castShadow = true;
     moon.target.position.set(0, 5, -12);
     scene.add(moon.target);
@@ -138,7 +110,7 @@ function main() {
     // ======== temple textures ========
     const texLoader = new THREE.TextureLoader();
 
-    // 1) box texture for cubes/boxes/walls/roof
+    // box texture for cubes/boxes/walls/roof
     const boxTex = texLoader.load("../imgs/MayanStone.png");
     boxTex.colorSpace = THREE.SRGBColorSpace;
     boxTex.wrapS = boxTex.wrapT = THREE.RepeatWrapping;
@@ -152,7 +124,7 @@ function main() {
     cylTex.repeat.set(1, 4); // taller tiling for pillars
     cylTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
-    // materials (light-reactive)
+    // materials
     const wallMat = new THREE.MeshStandardMaterial({
         map: boxTex,
         roughness: 1.0,
@@ -325,7 +297,7 @@ function main() {
         doorPanel.userData.closedY = doorPanel.position.y;
         temple.userData.doorPanel = doorPanel;
 
-        // aim target at the doorway opening
+        // aim at the doorway opening
         const doorAim = new THREE.Object3D();
         doorAim.position.set(0, 5.2, doorZ);
         temple.add(doorAim);
@@ -367,7 +339,7 @@ function main() {
 
         // lid with hinge pivot at back-top edge
         const lidPivot = new THREE.Group();
-        lidPivot.position.set(0, baseH / 2, -baseD / 2); // hinge line
+        lidPivot.position.set(0, baseH / 2, -baseD / 2);
         chest.add(lidPivot);
 
         const lid = new THREE.Mesh(new THREE.BoxGeometry(baseW, 0.25, baseD), goldMat);
@@ -404,32 +376,6 @@ function main() {
 
     let cat = null;
     let catShouldShow = false;
-    // ======= Dingus the cat =======
-    gltfLoader.load("../imgs/dingus_the_cat.glb", (gltf) => {
-        cat = gltf.scene;
-        cat.visible = false;
-        cat.scale.setScalar(0.25);
-        cat.rotation.y = 0;
-
-
-        cat.traverse((o) => {
-            if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
-        });
-
-        if (treasure) {
-            // cat position above chest
-            cat.position.set(
-                treasure.chest.position.x,
-                treasure.chest.position.y + 0.5,
-                treasure.chest.position.z
-            );
-        }
-
-        cat.userData.baseY = cat.position.y;
-
-        temple.add(cat);
-        if (catShouldShow) cat.visible = true;
-    }, undefined, (err) => console.error("Cat GLB load failed:", err));
 
     // function to load glb object
     function loadGLB(url, pos, scale = 1, diamondsOnTop = 0, floating = true) {
@@ -455,11 +401,45 @@ function main() {
         });
     }
 
-    loadGLB("../imgs/mediumIsland.glb", new THREE.Vector3(-24, 6.0, -24), 4, 1, true);
-    loadGLB("../imgs/largeIsland.glb", new THREE.Vector3(-12, 2.5, -12), 5, 1, true);
-    loadGLB("../imgs/Trees.glb", new THREE.Vector3(-18, 0.0, 18), 13.0, 0, false);
-    loadGLB("../imgs/Trees.glb", new THREE.Vector3(18, 0.0, 18), 13.0, 0, false);
-    loadGLB("../imgs/Roses.glb", new THREE.Vector3(20, 3.0, -20), 2, 0, false);
+    // load custom textured 3D model
+    // x: left/right y: up/down z: front/back
+    loadGLB("../models/mediumIsland.glb", new THREE.Vector3(-24, 6.0, -24), 4, 1, true);
+    loadGLB("../models/largeIsland.glb", new THREE.Vector3(-12, 2.5, -12), 5, 1, true);
+    loadGLB("../models/Trees.glb", new THREE.Vector3(-18, 0.0, 18), 13.0, 0, false);
+    loadGLB("../models/Trees.glb", new THREE.Vector3(18, 0.0, 18), 13.0, 0, false);
+    loadGLB("../models/Roses.glb", new THREE.Vector3(22, 3.0, -20), 2, 0, false);
+    loadGLB("../models/Roses.glb", new THREE.Vector3(19, 3.0, -20), 2, 0, false);
+    loadGLB("../models/Roses.glb", new THREE.Vector3(16, 3.0, -20), 2, 0, false);
+    loadGLB("../models/Bench.glb", new THREE.Vector3(22, 3.0, -14), 10, 0, false);
+    loadGLB("../models/Rock.glb", new THREE.Vector3(24, -0.4, -2), 20, 0, false);
+
+    // ======= glb models: Dingus the cat =======
+    gltfLoader.load("../models/dingus_the_cat.glb", (gltf) => {
+        cat = gltf.scene;
+        cat.visible = false;
+        cat.scale.setScalar(0.35);
+        cat.rotation.y = 0;
+
+
+        cat.traverse((o) => {
+            if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; }
+        });
+
+        if (treasure) {
+            // cat position above chest
+            cat.position.set(
+                treasure.chest.position.x,
+                treasure.chest.position.y + 0.5,
+                treasure.chest.position.z
+            );
+        }
+
+        cat.userData.baseY = cat.position.y;
+
+        temple.add(cat);
+        if (catShouldShow) cat.visible = true;
+    }, undefined, (err) => console.error("Cat GLB load failed:", err));
+
 
     // resize + animate
     function resizeIfNeeded() {
@@ -480,6 +460,17 @@ function main() {
     const diamonds = [];
     const bursts = [];
 
+    // ===== ember particles =====
+    const embers = [];
+    const emberGeo = new THREE.SphereGeometry(0.05, 6, 6);
+    let emberSpawnTimer = 0;
+
+    // ===== victory camera =====
+    let victoryCam = false;
+    const camGoal = new THREE.Vector3();
+    const targetGoal = new THREE.Vector3();
+
+
     const taskBox = document.querySelector("#taskBox");
     function updateHUD() {
         if (taskBox) taskBox.textContent = `Collected Diamonds: ${collected}/${TOTAL_DIAMONDS}`;
@@ -497,7 +488,8 @@ function main() {
         emissive: 0x1177aa,
         emissiveIntensity: 1.4,
         roughness: 0.25,
-        metalness: 0.6,
+        metalness: 1,
+        emissiveIntensity: 0.35
     });
 
     function makeDiamond(pos) {
@@ -538,6 +530,36 @@ function main() {
         for (const b of bursts) if (!b.group) b.group = group;
     }
 
+    function spawnEmberFromBrazier(b) {
+        const worldPos = new THREE.Vector3();
+        b.flame.getWorldPosition(worldPos);
+
+        const ember = new THREE.Mesh(
+            emberGeo,
+            new THREE.MeshBasicMaterial({
+                color: 0xffaa33,
+                transparent: true,
+                opacity: 0.95
+            })
+        );
+
+        ember.position.copy(worldPos);
+        ember.position.x += (Math.random() - 0.5) * 0.25;
+        ember.position.z += (Math.random() - 0.5) * 0.25;
+        ember.position.y += Math.random() * 0.08;
+
+        ember.userData.vel = new THREE.Vector3(
+            (Math.random() - 0.5) * 0.015,
+            0.03 + Math.random() * 0.03,
+            (Math.random() - 0.5) * 0.015
+        );
+
+        ember.userData.life = 0.7 + Math.random() * 0.5;
+
+        scene.add(ember);
+        embers.push(ember);
+    }
+
     // WIN spotlight
     let won = false;
     let doorOpenT = 0;
@@ -550,6 +572,9 @@ function main() {
         if (won) return;
         won = true;
 
+        doorSound.currentTime = 0;
+        doorSound.play().catch(() => { });
+
         catShouldShow = true;
         if (cat) cat.visible = true;
         if (treasure) {
@@ -560,7 +585,7 @@ function main() {
         torch.intensity = 5.0;
 
         // update HUD
-        if (taskBox) taskBox.textContent = "Collected Diamonds: 8/8 | Temple Unlocked, prize reached!";
+        if (taskBox) taskBox.textContent = "Collected Diamonds: 8/8 | Temple Unlocked! Click on the cat to enjoy cat dance";
 
         // fireworks bursts above the temple
         for (let i = 0; i < 6; i++) {
@@ -574,7 +599,7 @@ function main() {
         // start door opening animation
         doorOpenT = 0;
 
-        // ===== RGB -> WHITE victory spotlight =====
+        // ===== RGB transit to white spotlight =====
         if (!winLights) {
             const target = doorAim;
 
@@ -603,14 +628,34 @@ function main() {
         }
 
         winLightT = 0;
+
+        // ===== start victory camera move =====
+        victoryCam = true;
+        doorAim.getWorldPosition(targetGoal);
+        camGoal.copy(targetGoal).add(new THREE.Vector3(0, 4.5, 14));
+
+        // lock camera controls during cutscene
+        controls.enableRotate = false;
+        controls.enablePan = false;
+        controls.enableZoom = false;
+
+        // unlock after 2.5 seconds
+        setTimeout(() => {
+            victoryCam = false;
+            controls.enableRotate = true;
+            controls.enablePan = true;
+            controls.enableZoom = true;
+        }, 2500);
     }
 
     // diamond spawn on ground
     function spawnDiamondOnGround(areaHalf = 25) {
         for (let tries = 0; tries < 200; tries++) {
-            const x = Math.random() * areaHalf;
-            const z = Math.random() * areaHalf;
+            const x = (Math.random() * 2 - 1) * areaHalf; // left + right
+            const z = Math.random() * areaHalf;           // only spawn diamond in the forest
             const pos = new THREE.Vector3(x, 1.2, z);
+
+            if (templeBox.containsPoint(pos)) continue;
 
             makeDiamond(pos);
             return true;
@@ -652,10 +697,42 @@ function main() {
             m.rotation.y += 0.003; // slow spin
         }
 
-        // diamonds spin + bob
+        // animate octahedron shapes, diamonds spin + bob
         for (const d of diamonds) {
             d.rotation.y += d.userData.spin * 0.02;
             d.position.y = d.userData.baseY + Math.sin(t * 3.0 + d.id) * 0.25;
+        }
+
+        // ===== brazier flicker =====
+        for (const b of braziers) {
+            const flick = 0.85 + 0.15 * Math.sin(t * 12 + b.phase);
+            b.flame.scale.setScalar(flick);
+            b.flame.position.y = b.baseY + 0.05 * Math.sin(t * 10 + b.phase);
+            b.light.intensity = b.baseI + 0.4 * flick;
+        }
+
+        // ===== ember spawn =====
+        emberSpawnTimer += 1 / 60;
+        if (emberSpawnTimer > 0.06) {
+            emberSpawnTimer = 0;
+            for (const b of braziers) {
+                spawnEmberFromBrazier(b);
+            }
+        }
+
+        // ===== ember update =====
+        for (let i = embers.length - 1; i >= 0; i--) {
+            const e = embers[i];
+            e.position.add(e.userData.vel);
+            e.userData.life -= 1 / 60;
+            e.material.opacity = Math.max(0, e.userData.life / 1.2);
+            e.scale.multiplyScalar(0.995);
+
+            if (e.userData.life <= 0) {
+                scene.remove(e);
+                e.material.dispose();
+                embers.splice(i, 1);
+            }
         }
 
         // particle bursts
@@ -675,7 +752,7 @@ function main() {
         // win scene animation
         if (won && doorPanel) {
             doorOpenT = Math.min(1, doorOpenT + 0.015);
-            const lift = doorOpenT * 6.0; // higher lift so it clears the opening
+            const lift = doorOpenT * 5.0; // higher lift so it clears the opening
             doorPanel.position.y = doorPanel.userData.closedY + lift;
         }
 
@@ -686,19 +763,19 @@ function main() {
 
         if (won && cat) {
             cat.position.y = cat.userData.baseY + Math.sin(t * 2.5) * 0.13;
-            cat.rotation.y += 0.25; // spins around Y
+            cat.rotation.y += 0.55; // spins around Y
 
         }
 
         if (won && winLights) {
-            winLightT = Math.min(1, winLightT + 0.02);
+            winLightT = Math.min(1, winLightT + 0.005);
 
             const pulse = 0.5 + 0.5 * Math.sin(t * 4.0);
             const rgbStrength = 1 - winLightT;
 
-            winLights.rgb[0].intensity = 30 * rgbStrength * pulse;
-            winLights.rgb[1].intensity = 30 * rgbStrength * pulse;
-            winLights.rgb[2].intensity = 30 * rgbStrength * pulse;
+            winLights.rgb[0].intensity = 9000 * rgbStrength * pulse;
+            winLights.rgb[1].intensity = 9000 * rgbStrength * pulse;
+            winLights.rgb[2].intensity = 9000 * rgbStrength * pulse;
 
             winLights.white.intensity = 50 * winLightT;
             winLights.white.angle = THREE.MathUtils.lerp(Math.PI / 4, Math.PI / 20, winLightT);
@@ -709,15 +786,29 @@ function main() {
             ambient.intensity = THREE.MathUtils.lerp(0.2, 0.05, winLightT);
         }
 
+        if (victoryCam) {
+            camera.position.lerp(camGoal, 0.02);
+            controls.target.lerp(targetGoal, 0.02);
+            controls.update();
+        }
         renderer.render(scene, camera);
     }
     requestAnimationFrame(animate);
 
-
+    function isInsideObject(obj, root) {
+        while (obj) {
+            if (obj === root) return true;
+            obj = obj.parent;
+        }
+        return false;
+    }
 
     function collectDiamond(d) {
         if (!d || d.userData.collected) return;
         d.userData.collected = true;
+
+        gemSound.currentTime = 0;
+        gemSound.play().catch(() => { });
 
         spawnBurst(d.position);
 
@@ -731,17 +822,40 @@ function main() {
         if (collected >= TOTAL_DIAMONDS && !won) onWin();
     }
 
-    // click to collect diamond
+    // click to collect diamond, and click cat GLB to play cat sound
     canvas.addEventListener("pointerdown", (e) => {
         const rect = canvas.getBoundingClientRect();
         mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
         raycaster.setFromCamera(mouse, camera);
-        const hits = raycaster.intersectObjects(diamonds, false);
+        const hits = raycaster.intersectObjects(scene.children, true);
         if (!hits.length) return;
 
-        collectDiamond(hits[0].object);
+        for (const hit of hits) {
+            const obj = hit.object;
+
+            // click diamond
+            if (obj.userData.isDiamond) {
+                collectDiamond(obj);
+                return;
+            }
+
+            // click cat glb
+            if (cat && cat.visible && isInsideObject(obj, cat)) {
+                catSound.pause();
+                catSound.currentTime = 0;
+                catSound.play().catch(() => { });
+
+                clearTimeout(catSoundTimer);
+                catSoundTimer = setTimeout(() => {
+                    catSound.pause();
+                    catSound.currentTime = 0;
+                }, 10000);
+
+                return;
+            }
+        }
     });
 
 }
